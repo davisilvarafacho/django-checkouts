@@ -1,0 +1,28 @@
+{
+  "id": "evt_test_123",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "created": 1784900000,
+  "data": {
+    "object": {
+      "id": "cs_test_a1b2c3",
+      "object": "checkout.session",
+      "status": "complete",
+      "payment_status": "paid",
+      "mode": "payment",
+      "url": null,
+      "amount_total": 4990,
+      "currency": "brl",
+      "customer": "cus_ABC123",
+      "customer_details": {
+        "email": "pagador@exemplo.com.br",
+        "name": "Maria Souza",
+        "phone": null,
+        "tax_ids": []
+      },
+      "client_reference_id": "pedido-123",
+      "expires_at": 1785000000,
+      "metadata": {}
+    }
+  }
+}

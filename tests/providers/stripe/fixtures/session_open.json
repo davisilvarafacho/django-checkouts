@@ -1,0 +1,20 @@
+{
+  "id": "cs_test_a1b2c3",
+  "object": "checkout.session",
+  "status": "open",
+  "payment_status": "unpaid",
+  "mode": "payment",
+  "url": "https://checkout.stripe.com/c/pay/cs_test_a1b2c3",
+  "amount_total": 4990,
+  "currency": "brl",
+  "customer": null,
+  "customer_details": {
+    "email": "pagador@exemplo.com.br",
+    "name": null,
+    "phone": null,
+    "tax_ids": []
+  },
+  "client_reference_id": "pedido-123",
+  "expires_at": 1785000000,
+  "metadata": {"origem": "landing"}
+}

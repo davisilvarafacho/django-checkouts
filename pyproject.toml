@@ -1,0 +1,133 @@
+[build-system]
+requires = ["setuptools>=77", "wheel", "setuptools_scm>=6.2", "packaging>=24.2"]
+
+[project]
+name = "django-checkouts"
+authors = [{ name = "Davi Rafacho" }]
+description = "Checkout hospedado para Django com uma interface única e tipada, com foco no mercado brasileiro"
+readme = "README.rst"
+requires-python = ">=3.11"
+keywords = ["django", "checkout", "payments", "pix", "boleto", "stripe", "pagbank", "asaas", "brasil"]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+classifiers = [
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 5.2",
+  "Intended Audience :: Developers",
+  "Natural Language :: Portuguese (Brazilian)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Office/Business :: Financial",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+  "django>=5.2,<5.3",
+  "requests>=2.28",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+stripe = ["stripe>=7.8.0,<16"]
+
+[dependency-groups]
+dev = [
+  "coverage",
+  "django-stubs[compatible-mypy]",
+  "djangorestframework",
+  "pytest",
+  "pytest-cov",
+  "pytest-django",
+  "responses",
+  "types-requests",
+]
+docs = [
+  "sphinx-autobuild",
+  "sphinx-rtd-theme",
+]
+
+[tool.uv]
+required-version = ">=0.11.28"
+
+[project.urls]
+Homepage = "https://github.com/davisilvarafacho/django-checkouts"
+Repository = "https://github.com/davisilvarafacho/django-checkouts"
+Issues = "https://github.com/davisilvarafacho/django-checkouts/issues"
+
+[tool.coverage.run]
+omit = ["django_checkouts/version.py"]
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.mypy]
+exclude = ["^build/"]
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "test_settings"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--cov=django_checkouts",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-fail-under=90",
+  "--no-cov-on-fail",
+  "--color=yes",
+]
+testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "test_settings"
+pythonpath = "."
+
+[tool.ruff.lint]
+extend-select = [
+  "B",
+  "C4",
+  "DJ",
+  "E",
+  "ERA",
+  "G",
+  "I",
+  "ICN",
+  "INP",
+  "INT",
+  "ISC",
+  "PGH",
+  "PIE",
+  "PLE",
+  "PT",
+  "PYI",
+  "Q",
+  "RET",
+  "RSE",
+  "RUF",
+  "SIM",
+  "TCH",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  "RUF012",
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+required-imports = ["from __future__ import annotations"]
+
+[tool.setuptools_scm]
+write_to = "django_checkouts/version.py"
+version_scheme = "post-release"
+fallback_version = "0.0.0"
+
+[tool.setuptools.packages.find]
+include = ["django_checkouts*"]
+exclude = ["tests*", "tools*"]
+
+[tool.setuptools.package-data]
+django_checkouts = ["py.typed", "locale/*/LC_MESSAGES/*.mo"]
