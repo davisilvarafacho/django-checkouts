@@ -201,6 +201,14 @@ class TestStatusMapping:
         with pytest.raises(GatewayProtocolError, match="STATUS_MAP"):
             provider.map_status("estado_novo_do_gateway")
 
+    def test_unknown_status_does_not_echo_remote_value(self, provider):
+        secret_status = "Bearer authorization=super-secret-token"
+
+        with pytest.raises(GatewayProtocolError) as caught:
+            provider.map_status(secret_status)
+
+        assert secret_status not in str(caught.value)
+
     def test_unknown_event_returns_none_instead_of_raising(self, provider):
         """Evento fora do escopo não pode derrubar a fila de webhooks."""
         assert provider.map_event("invoice.created") is None

@@ -2,28 +2,26 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping  # noqa: TC003 - runtime hints
 from copy import deepcopy
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime  # noqa: TC003 - runtime hints
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
+from django_checkouts.enums import BillingCycle
 from django_checkouts.enums import ChangeTiming
+from django_checkouts.enums import Gateway
 from django_checkouts.enums import ProrationBehavior
+from django_checkouts.enums import SubscriptionStatus
+from django_checkouts.gateways.options import (
+    GatewayOptions,  # noqa: TC001 - runtime hints
+)
 from django_checkouts.types.common import Price
 from django_checkouts.types.common import normalize_currency
 from django_checkouts.types.common import normalize_utc
 from django_checkouts.types.common import validate_integer
 from django_checkouts.types.common import validate_positive_integer
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from datetime import datetime
-
-    from django_checkouts.enums import BillingCycle
-    from django_checkouts.enums import Gateway
-    from django_checkouts.enums import SubscriptionStatus
-    from django_checkouts.gateways.options import GatewayOptions
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from typing import ClassVar
 
-if TYPE_CHECKING:
-    from django_checkouts.enums import Gateway
+from django_checkouts.enums import Gateway  # noqa: TC001 - runtime hints
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

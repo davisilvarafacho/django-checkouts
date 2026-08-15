@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping  # noqa: TC003 - runtime hints
 from copy import deepcopy
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime  # noqa: TC003 - runtime hints
 from types import MappingProxyType
-from typing import TYPE_CHECKING
 
 from django_checkouts.enums import CheckoutMode
 from django_checkouts.enums import CheckoutStatus
+from django_checkouts.enums import Gateway
 from django_checkouts.enums import PaymentMethod
+from django_checkouts.gateways.options import (
+    GatewayOptions,  # noqa: TC001 - runtime hints
+)
 from django_checkouts.types.common import CheckoutItem
 from django_checkouts.types.common import Customer
 from django_checkouts.types.common import InlinePrice
@@ -18,13 +23,6 @@ from django_checkouts.types.common import Recurrence
 from django_checkouts.types.common import normalize_currency
 from django_checkouts.types.common import normalize_utc
 from django_checkouts.types.common import validate_integer
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from datetime import datetime
-
-    from django_checkouts.enums import Gateway
-    from django_checkouts.gateways.options import GatewayOptions
 
 
 def validate_checkout_create(checkout: CheckoutCreate) -> None:

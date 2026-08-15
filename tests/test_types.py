@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError
 from datetime import UTC
 from datetime import datetime
+from inspect import isclass
+from typing import get_type_hints
 
 import pytest
 
@@ -18,18 +20,21 @@ from django_checkouts.enums import SubscriptionStatus
 from django_checkouts.exceptions import GatewayError
 from django_checkouts.exceptions import GatewayTemporaryError
 from django_checkouts.exceptions import RetryAdvice
+from django_checkouts.gateways import GatewayOptions
 from django_checkouts.types import AddItem
 from django_checkouts.types import CatalogPrice
 from django_checkouts.types import ChangeSubscription
 from django_checkouts.types import Checkout
 from django_checkouts.types import CheckoutCreate
 from django_checkouts.types import CheckoutItem
+from django_checkouts.types import EventPage
 from django_checkouts.types import InlinePrice
 from django_checkouts.types import Invoice
 from django_checkouts.types import InvoiceLine
 from django_checkouts.types import SetQuantity
 from django_checkouts.types import Subscription
 from django_checkouts.types import SubscriptionItem
+from django_checkouts.types import WebhookEvent
 
 
 def test_money_rejects_float_and_bool():
@@ -65,6 +70,63 @@ def test_checkout_is_immutable_and_hides_raw():
 def test_quantity_is_absolute_and_positive():
     with pytest.raises(ValueError, match="quantity"):
         CheckoutItem(price=CatalogPrice(external_id="price_123"), quantity=0)
+
+
+def test_public_dto_and_gateway_option_annotations_resolve_at_runtime():
+    import django_checkouts.types as public_types
+
+    dto_classes = [
+        getattr(public_types, name)
+        for name in public_types.__all__
+        if isclass(getattr(public_types, name))
+    ]
+
+    assert all(get_type_hints(dto_class) for dto_class in dto_classes)
+    assert get_type_hints(GatewayOptions)
+
+
+@pytest.mark.parametrize(
+    ("factory", "field_name"),
+    [
+        (
+            lambda: WebhookEvent(
+                gateway=Gateway.STRIPE,
+                variant="stripe",
+                event_id="evt_123",
+                event_type="checkout.completed",
+                type=None,
+                occurred_at=None,
+                resource_kind=None,
+                resource_id=None,
+                resource=None,
+                livemode=True,
+                raw={},
+            ),
+            "occurred_at",
+        ),
+        (
+            lambda: EventPage(
+                items=(),
+                next_cursor=None,
+                occurred_since=None,
+                occurred_before=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+            "occurred_since",
+        ),
+        (
+            lambda: EventPage(
+                items=(),
+                next_cursor=None,
+                occurred_since=datetime(2026, 1, 1, tzinfo=UTC),
+                occurred_before=None,
+            ),
+            "occurred_before",
+        ),
+    ],
+)
+def test_required_event_datetimes_reject_none(factory, field_name):
+    with pytest.raises(TypeError, match=field_name):
+        factory()
 
 
 def test_checkout_create_rejects_incompatible_items_and_recurrence():

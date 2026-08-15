@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import cast
 
-if TYPE_CHECKING:
-    from django_checkouts.enums import BillingCycle
+from django_checkouts.enums import BillingCycle  # noqa: TC001 - runtime hints
 
 
 def validate_positive_integer(value: int, field_name: str) -> None:
@@ -43,6 +42,13 @@ def normalize_utc(value: datetime | None, field_name: str) -> datetime | None:
             f"{field_name} deve ter timezone-aware para ser normalizado em UTC."
         )
     return value.astimezone(UTC)
+
+
+def normalize_required_utc(value: datetime, field_name: str) -> datetime:
+    """Normaliza uma data obrigatória e consciente de fuso para UTC."""
+    if value is None:
+        raise TypeError(f"{field_name} deve ser datetime timezone-aware.")
+    return cast("datetime", normalize_utc(value, field_name))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

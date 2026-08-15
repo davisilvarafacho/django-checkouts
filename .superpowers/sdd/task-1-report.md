@@ -118,3 +118,31 @@ um subconjunto da suíte (64,03%); a suíte completa passa o gate com 94,39%.
 - Confirmado que o mapeamento desconhecido é `GatewayProtocolError`, mantendo
   captura legada como `ProviderPermanentError` para provedores existentes.
 - Não há preocupações pendentes no escopo desta correção.
+
+## Correção da re-revisão — 2026-08-15
+
+### RED/GREEN
+
+1. RED: adicionados testes públicos para um `gateway_status` contendo uma
+   credencial, para `typing.get_type_hints` de todos os DTOs reexportados e de
+   `GatewayOptions`, e para os três campos datetime obrigatórios de eventos.
+   `uv run pytest tests/test_types.py tests/test_base.py -q --no-cov` falhou
+   com 5 falhas esperadas: o status externo aparecia na exceção, `Mapping` não
+   era resolvível durante a introspecção e os três valores `None` eram aceitos.
+2. GREEN: `map_status` mantém a orientação para atualizar `STATUS_MAP`, mas
+   não inclui o valor remoto na mensagem. As dependências das anotações dos
+   DTOs e de `GatewayOptions` agora são importadas em runtime, preservando
+   `from __future__ import annotations`. Foi criado `normalize_required_utc`,
+   reutilizando a normalização UTC existente e recusando `None` nos três
+   campos obrigatórios.
+
+### Evidência de testes
+
+| Comando | Resultado |
+| --- | --- |
+| `uv run pytest tests/test_types.py tests/test_base.py -q --no-cov` (RED) | 5 failed, 36 passed — falhas esperadas descritas acima |
+| `uv run pytest tests/test_types.py tests/test_base.py -q --no-cov` (GREEN) | 41 passed |
+| `uv run pytest -q` | 111 passed; cobertura total 95,91% |
+| `uv run mypy django_checkouts` | sucesso, sem problemas |
+| `uvx ruff check django_checkouts/base.py django_checkouts/types django_checkouts/gateways/options.py tests/test_types.py tests/test_base.py` | sucesso |
+| `git diff --check` | sucesso |

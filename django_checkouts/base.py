@@ -195,7 +195,7 @@ class BaseCheckoutProvider:
         except KeyError as exc:
             raise GatewayProtocolError(
                 f"O provedor '{self.name}' devolveu um status não mapeado: "
-                f"'{gateway_status}'. Acrescente-o ao STATUS_MAP.",
+                "Acrescente-o ao STATUS_MAP.",
                 gateway=self.name,
                 variant="legacy",
             ) from exc
