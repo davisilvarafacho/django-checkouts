@@ -1,10 +1,4 @@
-"""Vocabulário comum a todos os provedores.
-
-Os estados usam ``TextChoices`` em vez de ``StrEnum``: o valor serializa
-como string e cai direto num campo de model, mas o rótulo passa pelo
-``pgettext_lazy`` e é traduzível. O idioma-fonte é pt-BR; ``locale/en`` traduz
-para inglês.
-"""
+"""Vocabulário normalizado da interface pública de checkouts."""
 
 from __future__ import annotations
 
@@ -12,12 +6,16 @@ from django.db.models import TextChoices
 from django.utils.translation import pgettext_lazy
 
 
-class Provider(TextChoices):
-    """Provedores com implementação nesta lib."""
+class Gateway(TextChoices):
+    """Gateways financeiros conhecidos pela biblioteca."""
 
-    STRIPE = "stripe", pgettext_lazy("checkout provider", "Stripe")
-    PAGSEGURO = "pagseguro", pgettext_lazy("checkout provider", "PagBank")
-    ASAAS = "asaas", pgettext_lazy("checkout provider", "Asaas")
+    STRIPE = "stripe", pgettext_lazy("checkout gateway", "Stripe")
+    PAGSEGURO = "pagseguro", pgettext_lazy("checkout gateway", "PagBank")
+    ASAAS = "asaas", pgettext_lazy("checkout gateway", "Asaas")
+
+
+# Compatibilidade temporária para consumidores da interface de providers.
+Provider = Gateway
 
 
 class PaymentMethod(TextChoices):
@@ -29,56 +27,24 @@ class PaymentMethod(TextChoices):
 
 
 class CheckoutMode(TextChoices):
-    """Cobrança única ou recorrente.
-
-    Parcelamento no cartão ("3x sem juros") é um terceiro caso, distinto de
-    assinatura, e está fora do MVP — entra como ``INSTALLMENT`` na v2.
-    Acrescentar um membro aqui é aditivo e não quebra código existente.
-    """
+    """Cobrança única ou recorrente."""
 
     PAYMENT = "payment", pgettext_lazy("checkout mode", "Pagamento único")
     SUBSCRIPTION = "subscription", pgettext_lazy("checkout mode", "Assinatura")
 
 
 class CheckoutStatus(TextChoices):
-    """Estado normalizado de um checkout.
-
-    Traduzir o zoo de status de cada provedor para estes cinco é o principal
-    trabalho da lib. Não existe membro ``UNKNOWN``: um status que a lib não
-    conhece levanta ``ProviderPermanentError`` em
-    :meth:`~django_checkouts.base.BaseCheckoutProvider.map_status`,
-    para você mapeá-lo — melhor quebrar alto do que deixar um estado errado
-    circular pelo seu código.
-    """
+    """Estado normalizado de um checkout."""
 
     PENDING = "pending", pgettext_lazy("checkout status", "Pendente")
-    """Criado, aguardando o pagador. Inclui pix e boleto emitidos e não pagos."""
-
     PAID = "paid", pgettext_lazy("checkout status", "Pago")
-    """Dinheiro confirmado. Só libere o produto neste estado."""
-
     EXPIRED = "expired", pgettext_lazy("checkout status", "Expirado")
-    """Passou da validade sem pagamento."""
-
     CANCELED = "canceled", pgettext_lazy("checkout status", "Cancelado")
-    """Cancelado por você ou pelo pagador."""
-
     FAILED = "failed", pgettext_lazy("checkout status", "Recusado")
-    """Tentativa de pagamento recusada em definitivo."""
 
 
 class BillingCycle(TextChoices):
-    """Periodicidade de uma assinatura.
-
-    Opções fechadas de propósito. A alternativa — expor o par ``interval`` +
-    ``interval_count`` do Stripe — não sobrevive à tradução: Asaas e PagBank só
-    aceitam ciclos nomeados, e um ``interval_count=5`` não teria para onde ir.
-    Cada provider converte: ``QUARTERLY`` vira ``interval="month",
-    interval_count=3`` no Stripe e ``cycle="QUARTERLY"`` no Asaas.
-
-    Os nomes seguem os do Asaas, que é o provedor com o vocabulário mais
-    restrito dos três — o denominador comum.
-    """
+    """Periodicidade fechada de uma assinatura."""
 
     WEEKLY = "weekly", pgettext_lazy("billing cycle", "Semanal")
     BIWEEKLY = "biweekly", pgettext_lazy("billing cycle", "Quinzenal")
@@ -89,10 +55,57 @@ class BillingCycle(TextChoices):
     YEARLY = "yearly", pgettext_lazy("billing cycle", "Anual")
 
 
+class SubscriptionStatus(TextChoices):
+    """Estado normalizado de uma assinatura."""
+
+    INCOMPLETE = "incomplete", pgettext_lazy("subscription status", "Incompleta")
+    TRIALING = "trialing", pgettext_lazy("subscription status", "Em teste")
+    ACTIVE = "active", pgettext_lazy("subscription status", "Ativa")
+    PAST_DUE = "past_due", pgettext_lazy("subscription status", "Em atraso")
+    PAUSED = "paused", pgettext_lazy("subscription status", "Pausada")
+    UNPAID = "unpaid", pgettext_lazy("subscription status", "Não paga")
+    CANCELED = "canceled", pgettext_lazy("subscription status", "Cancelada")
+    EXPIRED = "expired", pgettext_lazy("subscription status", "Expirada")
+
+
+class InvoiceStatus(TextChoices):
+    """Estado normalizado de uma fatura."""
+
+    DRAFT = "draft", pgettext_lazy("invoice status", "Rascunho")
+    OPEN = "open", pgettext_lazy("invoice status", "Em aberto")
+    PAID = "paid", pgettext_lazy("invoice status", "Paga")
+    VOID = "void", pgettext_lazy("invoice status", "Anulada")
+    UNCOLLECTIBLE = "uncollectible", pgettext_lazy("invoice status", "Incobrável")
+
+
+class InvoiceReason(TextChoices):
+    """Motivo normalizado para emissão de uma fatura."""
+
+    INITIAL_SUBSCRIPTION = (
+        "initial_subscription",
+        pgettext_lazy("invoice reason", "Assinatura inicial"),
+    )
+    RENEWAL = "renewal", pgettext_lazy("invoice reason", "Renovação")
+    SUBSCRIPTION_UPDATE = (
+        "subscription_update",
+        pgettext_lazy("invoice reason", "Alteração de assinatura"),
+    )
+    MANUAL = "manual", pgettext_lazy("invoice reason", "Manual")
+    UNKNOWN = "unknown", pgettext_lazy("invoice reason", "Desconhecido")
+
+
 class EventType(TextChoices):
     """Tipo normalizado de evento de webhook."""
 
+    CHECKOUT_PENDING = (
+        "checkout.pending",
+        pgettext_lazy("event type", "Checkout pendente"),
+    )
     CHECKOUT_PAID = "checkout.paid", pgettext_lazy("event type", "Checkout pago")
+    CHECKOUT_FAILED = (
+        "checkout.failed",
+        pgettext_lazy("event type", "Checkout recusado"),
+    )
     CHECKOUT_EXPIRED = (
         "checkout.expired",
         pgettext_lazy("event type", "Checkout expirado"),
@@ -101,35 +114,87 @@ class EventType(TextChoices):
         "checkout.canceled",
         pgettext_lazy("event type", "Checkout cancelado"),
     )
-    CHECKOUT_FAILED = (
-        "checkout.failed",
-        pgettext_lazy("event type", "Checkout recusado"),
+    SUBSCRIPTION_CREATED = (
+        "subscription.created",
+        pgettext_lazy("event type", "Assinatura criada"),
     )
-    CHECKOUT_PENDING = (
-        "checkout.pending",
-        pgettext_lazy("event type", "Checkout pendente"),
+    SUBSCRIPTION_UPDATED = (
+        "subscription.updated",
+        pgettext_lazy("event type", "Assinatura atualizada"),
+    )
+    SUBSCRIPTION_CANCELED = (
+        "subscription.canceled",
+        pgettext_lazy("event type", "Assinatura cancelada"),
+    )
+    INVOICE_OPENED = "invoice.opened", pgettext_lazy("event type", "Fatura aberta")
+    INVOICE_PAID = "invoice.paid", pgettext_lazy("event type", "Fatura paga")
+    INVOICE_PAYMENT_FAILED = (
+        "invoice.payment_failed",
+        pgettext_lazy("event type", "Falha no pagamento da fatura"),
+    )
+    INVOICE_VOIDED = "invoice.voided", pgettext_lazy("event type", "Fatura anulada")
+    INVOICE_UNCOLLECTIBLE = (
+        "invoice.uncollectible",
+        pgettext_lazy("event type", "Fatura incobrável"),
+    )
+
+
+class ResourceKind(TextChoices):
+    """Tipo de recurso associado a um evento."""
+
+    CHECKOUT = "checkout", pgettext_lazy("resource kind", "Checkout")
+    SUBSCRIPTION = "subscription", pgettext_lazy("resource kind", "Assinatura")
+    INVOICE = "invoice", pgettext_lazy("resource kind", "Fatura")
+
+
+class ChangeTiming(TextChoices):
+    """Quando uma alteração de assinatura deve vigorar."""
+
+    IMMEDIATELY = "immediately", pgettext_lazy("change timing", "Imediatamente")
+    NEXT_CYCLE = "next_cycle", pgettext_lazy("change timing", "No próximo ciclo")
+
+
+class ProrationBehavior(TextChoices):
+    """Como tratar o saldo proporcional de uma alteração."""
+
+    CREATE_PRORATIONS = (
+        "create_prorations",
+        pgettext_lazy("proration behavior", "Criar ajustes proporcionais"),
+    )
+    INVOICE_IMMEDIATELY = (
+        "invoice_immediately",
+        pgettext_lazy("proration behavior", "Faturar imediatamente"),
+    )
+    NONE = "none", pgettext_lazy("proration behavior", "Não ajustar")
+
+
+class CancellationTiming(TextChoices):
+    """Quando uma assinatura deve ser cancelada."""
+
+    IMMEDIATELY = "immediately", pgettext_lazy("cancellation timing", "Imediatamente")
+    PERIOD_END = "period_end", pgettext_lazy("cancellation timing", "No fim do ciclo")
+
+
+class RetryDisposition(TextChoices):
+    """Ação segura depois de uma falha na fronteira do gateway."""
+
+    NEVER = "never", pgettext_lazy("retry disposition", "Não repetir")
+    RETRY = "retry", pgettext_lazy("retry disposition", "Repetir")
+    RETRY_SAME_KEY = (
+        "retry_same_key",
+        pgettext_lazy("retry disposition", "Repetir com a mesma chave"),
+    )
+    RECONCILE_FIRST = (
+        "reconcile_first",
+        pgettext_lazy("retry disposition", "Conciliar antes de repetir"),
     )
 
 
 class Capability(TextChoices):
-    """Operações opcionais que um provider pode declarar que suporta.
-
-    Em vez de cada provider levantar ``NotImplementedError`` de um jeito
-    diferente, ele declara o que faz em ``CAPABILITIES`` e a base recusa o resto
-    de forma uniforme, antes de qualquer chamada de rede.
-    """
+    """Capacidades opcionais mantidas para a API legada de providers."""
 
     SUBSCRIPTION = "subscription"
-    """Aceita ``mode=SUBSCRIPTION`` em ``create_checkout``."""
-
     CANCEL = "cancel"
-    """Cancela um checkout ainda não pago pela API."""
-
     EXPIRATION = "expiration"
-    """Aceita uma data de validade definida por você."""
-
     CUSTOMER_PREFILL = "customer_prefill"
-    """Pré-preenche a tela com os dados do pagador."""
-
     PROVIDER_CATALOG = "provider_catalog"
-    """Aceita preço pré-cadastrado via ``LineItem.provider_price_id``."""
