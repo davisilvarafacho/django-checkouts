@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import UTC
 from datetime import datetime
 from typing import Any
@@ -158,21 +159,36 @@ def checkout_from_stripe(raw: object, *, variant: str) -> Checkout:
 
 
 def _response_mapping(raw: object, *, variant: str) -> Mapping[str, object]:
-    if isinstance(raw, Mapping):
-        return raw
+    converted = _plain_response_value(raw, variant=variant)
+    if isinstance(converted, dict):
+        return converted
 
-    to_dict = getattr(raw, "to_dict", None)
+    raise _protocol_error(variant, "O Stripe devolveu um checkout inválido.")
+
+
+def _plain_response_value(value: object, *, variant: str) -> object:
+    """Remove containers e objetos do SDK da resposta do Stripe."""
+    if isinstance(value, Mapping):
+        return {
+            key: _plain_response_value(item, variant=variant)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, Sequence) and not isinstance(
+        value, (str, bytes, bytearray)
+    ):
+        return [_plain_response_value(item, variant=variant) for item in value]
+
+    to_dict = getattr(value, "to_dict", None)
     if callable(to_dict):
         try:
-            converted = to_dict()
+            return _plain_response_value(to_dict(), variant=variant)
         except Exception as error:
             raise _protocol_error(
                 variant, "O Stripe devolveu um checkout inválido."
             ) from error
-        if isinstance(converted, Mapping):
-            return dict(converted)
 
-    raise _protocol_error(variant, "O Stripe devolveu um checkout inválido.")
+    return value
 
 
 def _line_item(item: CheckoutItem, request: CheckoutCreate) -> dict[str, Any]:

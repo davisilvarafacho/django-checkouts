@@ -43,6 +43,20 @@ SUCCESS_URL = "https://example.test/success"
 MISSING = object()
 
 
+class LegacyStripeSession(dict[str, object]):
+    """Simula `Session` do stripe 7.8, que também era um dict."""
+
+
+class FakeStripeObject:
+    """Simula valores aninhados do SDK que expõem somente `to_dict()`."""
+
+    def __init__(self, value: object) -> None:
+        self.value = value
+
+    def to_dict(self) -> object:
+        return self.value
+
+
 @pytest.fixture
 def stripe_mock(monkeypatch):
     monkeypatch.setattr(stripe.checkout.Session, "create", Mock())
@@ -330,6 +344,26 @@ def test_retrieve_normalizes_an_sdk_session(
         tax_id="12345678909",
         external_id="cus_ABC123",
     )
+
+
+def test_retrieve_recursively_converts_legacy_sdk_response_to_plain_values(
+    stripe_client, stripe_mock, load_fixture
+):
+    payload = load_fixture("session_paid.json")
+    payload["customer_details"] = FakeStripeObject(payload["customer_details"])
+    payload["metadata"] = FakeStripeObject(
+        {"items": [FakeStripeObject({"price": "price_pro"})]}
+    )
+    stripe_mock.checkout.Session.retrieve.return_value = LegacyStripeSession(payload)
+
+    checkout = stripe_client.checkouts.retrieve("cs_test_a1b2c3")
+
+    assert type(checkout.raw["customer_details"]) is dict
+    assert type(checkout.raw["customer_details"]["tax_ids"]) is list
+    assert type(checkout.raw["customer_details"]["tax_ids"][0]) is dict
+    assert type(checkout.raw["metadata"]) is dict
+    assert type(checkout.raw["metadata"]["items"]) is list
+    assert type(checkout.raw["metadata"]["items"][0]) is dict
 
 
 def test_cancel_normalizes_an_sdk_session(
