@@ -6,7 +6,7 @@ import hashlib
 
 import pytest
 
-from django_checkouts.enums import Provider
+from django_checkouts.enums import Gateway
 from django_checkouts.exceptions import WebhookVerificationError
 from django_checkouts.webhooks import HeaderTokenWebhookAuth
 from django_checkouts.webhooks import Sha256BodyWebhookAuth
@@ -28,7 +28,7 @@ class TestHeaderTokenWebhookAuth:
     @pytest.fixture
     def auth(self):
         return HeaderTokenWebhookAuth(
-            provider=Provider.ASAAS, secret="tok-secreto", header="asaas-access-token"
+            gateway=Gateway.ASAAS, secret="tok-secreto", header="asaas-access-token"
         )
 
     def test_accepts_matching_token(self, auth):
@@ -47,7 +47,7 @@ class TestHeaderTokenWebhookAuth:
 
     def test_rejects_when_secret_is_unconfigured(self):
         """Sem segredo, aceitar seria pior do que recusar."""
-        insecure = HeaderTokenWebhookAuth(provider=Provider.ASAAS, header="x-token")
+        insecure = HeaderTokenWebhookAuth(gateway=Gateway.ASAAS, header="x-token")
         with pytest.raises(WebhookVerificationError, match="não configurado"):
             insecure.verify(b"{}", {"x-token": "qualquer"})
 
@@ -60,11 +60,11 @@ class TestHeaderTokenWebhookAuth:
             auth.verify(b"{nao json", {"asaas-access-token": "tok-secreto"})
 
     def test_missing_secret_is_a_check_error(self):
-        messages = HeaderTokenWebhookAuth(provider=Provider.ASAAS).validate()
+        messages = HeaderTokenWebhookAuth(gateway=Gateway.ASAAS).validate()
         assert [m.id for m in messages] == ["django_checkouts.E002"]
 
     def test_secret_is_not_in_repr(self):
-        auth = HeaderTokenWebhookAuth(provider=Provider.ASAAS, secret="tok-secreto")
+        auth = HeaderTokenWebhookAuth(gateway=Gateway.ASAAS, secret="tok-secreto")
         assert "tok-secreto" not in repr(auth)
 
 
@@ -72,7 +72,7 @@ class TestSha256BodyWebhookAuth:
     @pytest.fixture
     def auth(self):
         return Sha256BodyWebhookAuth(
-            provider=Provider.PAGSEGURO, secret="tok", header="x-authenticity-token"
+            gateway=Gateway.PAGSEGURO, secret="tok", header="x-authenticity-token"
         )
 
     def digest(self, token: bytes, body: bytes) -> str:
@@ -101,6 +101,6 @@ class TestSha256BodyWebhookAuth:
             auth.verify(b"{}", {"x-authenticity-token": "deadbeef"})
 
     def test_rejects_when_secret_is_unconfigured(self):
-        insecure = Sha256BodyWebhookAuth(provider=Provider.PAGSEGURO, header="x-token")
+        insecure = Sha256BodyWebhookAuth(gateway=Gateway.PAGSEGURO, header="x-token")
         with pytest.raises(WebhookVerificationError, match="não configurado"):
             insecure.verify(b"{}", {"x-token": "abc"})

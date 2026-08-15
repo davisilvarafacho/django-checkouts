@@ -1,4 +1,4 @@
-"""Credenciais de saída: o que o provider manda ao chamar a API do gateway."""
+"""Credenciais de saída enviadas ao chamar a API do gateway."""
 
 from __future__ import annotations
 
@@ -36,5 +36,5 @@ def test_correct_prefix_is_silent():
 
 
 def test_token_is_not_in_repr():
-    """Providers vão parar em log de exceção; o segredo não pode ir junto."""
+    """Objetos podem parar em logs de exceção; o segredo não pode ir junto."""
     assert "segredo" not in repr(TokenAuth(token="segredo"))

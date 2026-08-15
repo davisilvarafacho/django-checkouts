@@ -23,10 +23,10 @@ DATABASES = {
 
 # A chave fica como string de propósito: é assim que o settings de um projeto
 # real se parece — módulo de settings não importa a lib. No código, use
-# `Provider.STRIPE`; como é TextChoices, casa com esta chave.
+# `Gateway.STRIPE`; como é TextChoices, casa com esta chave.
 CHECKOUT_VARIANTS = {
     "stripe": (
-        "django_checkouts.providers.stripe.StripeCheckoutProvider",
+        "django_checkouts.gateways.stripe.StripeGateway",
         {
             "api_key": "sk_test_dummy",
             "webhook_secret": "whsec_dummy",

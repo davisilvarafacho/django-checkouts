@@ -59,9 +59,4 @@ def _configuration_error(variant: str) -> Error:
         ),
         id="django_checkouts.E001",
     )
-
-
-# Compatibilidade interna até a remoção da superfície pré-1.0 na Task 8.
-check_checkout_providers = check_checkout_gateways
-
 __all__ = ["check_checkout_gateways"]

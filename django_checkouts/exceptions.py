@@ -57,12 +57,11 @@ class ValidationError(CheckoutError):
 class CapabilityNotSupported(CheckoutError):
     """O gateway não implementa a operação solicitada."""
 
-    def __init__(self, provider: str, capability: str) -> None:
+    def __init__(self, gateway: str, capability: str) -> None:
         super().__init__(
-            f"O gateway '{provider}' não suporta a capacidade '{capability}'."
+            f"O gateway '{gateway}' não suporta a capacidade '{capability}'."
         )
-        self.gateway = provider
-        self.provider = provider
+        self.gateway = gateway
         self.capability = capability
 
 
@@ -70,14 +69,13 @@ class UnsupportedPaymentMethod(CheckoutError):
     """O gateway não oferece um dos meios de pagamento pedidos."""
 
     def __init__(
-        self, provider: str, method: str, supported: Iterable[Any]
+        self, gateway: str, method: str, supported: Iterable[Any]
     ) -> None:
         super().__init__(
-            f"O gateway '{provider}' não suporta o meio de pagamento '{method}'. "
+            f"O gateway '{gateway}' não suporta o meio de pagamento '{method}'. "
             f"Suportados: {sorted(str(item) for item in supported)}."
         )
-        self.gateway = provider
-        self.provider = provider
+        self.gateway = gateway
         self.method = method
         self.supported = supported
 
@@ -121,43 +119,7 @@ class GatewayPermanentError(GatewayError):
     """Falha definitiva que não deve ser repetida sem conciliação ou mudança."""
 
 
-class ProviderTemporaryError(GatewayTemporaryError):
-    """Alias compatível da antiga API de providers."""
-
-    def __init__(
-        self,
-        message: str = "",
-        code: str | int | None = None,
-        gateway_message: str | None = None,
-    ) -> None:
-        super().__init__(
-            message,
-            gateway="legacy",
-            variant="legacy",
-            code=code,
-            gateway_message=gateway_message,
-        )
-
-
-class ProviderPermanentError(GatewayPermanentError):
-    """Alias compatível da antiga API de providers."""
-
-    def __init__(
-        self,
-        message: str = "",
-        code: str | int | None = None,
-        gateway_message: str | None = None,
-    ) -> None:
-        super().__init__(
-            message,
-            gateway="legacy",
-            variant="legacy",
-            code=code,
-            gateway_message=gateway_message,
-        )
-
-
-class GatewayProtocolError(ProviderPermanentError):
+class GatewayProtocolError(GatewayPermanentError):
     """Resposta externa incompatível com o contrato normalizado."""
 
     def __init__(
@@ -183,21 +145,3 @@ class GatewayProtocolError(ProviderPermanentError):
 
 class ResourceNotFound(GatewayPermanentError):
     """O recurso solicitado não existe no gateway."""
-
-
-class CheckoutNotFound(ResourceNotFound):
-    """Alias compatível para recurso de checkout não encontrado."""
-
-    def __init__(
-        self,
-        message: str = "",
-        code: str | int | None = None,
-        gateway_message: str | None = None,
-    ) -> None:
-        super().__init__(
-            message,
-            gateway="legacy",
-            variant="legacy",
-            code=code,
-            gateway_message=gateway_message,
-        )

@@ -14,10 +14,6 @@ class Gateway(TextChoices):
     ASAAS = "asaas", pgettext_lazy("checkout gateway", "Asaas")
 
 
-# Compatibilidade temporária para consumidores da interface de providers.
-Provider = Gateway
-
-
 class PaymentMethod(TextChoices):
     """Meio de pagamento oferecido na tela de checkout."""
 
@@ -188,13 +184,3 @@ class RetryDisposition(TextChoices):
         "reconcile_first",
         pgettext_lazy("retry disposition", "Conciliar antes de repetir"),
     )
-
-
-class Capability(TextChoices):
-    """Capacidades opcionais mantidas para a API legada de providers."""
-
-    SUBSCRIPTION = "subscription"
-    CANCEL = "cancel"
-    EXPIRATION = "expiration"
-    CUSTOMER_PREFILL = "customer_prefill"
-    PROVIDER_CATALOG = "provider_catalog"

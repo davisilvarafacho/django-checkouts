@@ -44,7 +44,7 @@ class TokenAuth(BaseAuth):
     Cobre os três provedores do MVP: ``Authorization: Bearer <token>`` no Stripe
     e no PagBank, ``access_token: <token>`` sem esquema no Asaas.
 
-    O token é ``repr=False``: providers vão parar em log de exceção e em
+    O token é ``repr=False``: objetos vão parar em log de exceção e em
     rastreadores de erro, e o segredo não pode ir junto.
     """
 

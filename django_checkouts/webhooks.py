@@ -1,14 +1,14 @@
 """Verificação **de entrada**: provar que um webhook veio mesmo do gateway.
 
 O sentido aqui é gateway → aplicação. Para o caminho contrário — a credencial
-que o provider manda ao chamar a API — veja :mod:`django_checkouts.credentials`.
+enviada ao chamar a API — veja :mod:`django_checkouts.credentials`.
 
 A lib não traz view nem rota de webhook: roteamento, transação, fila e o que
 fazer com um pagamento confirmado são decisões do seu projeto, e qualquer default
 seria engessado. Ela cobre a parte que é idêntica em todo projeto e fácil de
 errar em silêncio — provar a origem da requisição e normalizar o payload. Para
 usar isso como authentication class de DRF, veja
-:mod:`django_checkouts.authentication`.
+:mod:`django_checkouts.integrations.drf`.
 
 Toda comparação de segredo usa :func:`hmac.compare_digest`, nunca ``==``, para
 não vazar o segredo por timing.
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from django.core.checks import CheckMessage
 
-    from django_checkouts.enums import Provider
+    from django_checkouts.enums import Gateway
 
 
 def normalize_headers(headers: Mapping[str, str]) -> dict[str, str]:
@@ -55,16 +55,15 @@ def normalize_headers(headers: Mapping[str, str]) -> dict[str, str]:
 
 @dataclass
 class BaseWebhookAuth:
-    """Prova que um webhook veio mesmo do provedor.
+    """Prova que um webhook veio mesmo do gateway.
 
     ``verify`` devolve o payload já decodificado em vez de só validar: o Stripe
     verifica e constrói o evento na mesma passada, e decodificar duas vezes
     seria desperdício.
     """
 
-    provider: Provider | str = ""
-    """Quem assina o webhook. Vem do ``name`` do provider, então é um membro de
-    :class:`~django_checkouts.enums.Provider` nos provedores da lib."""
+    gateway: Gateway | str = ""
+    """Quem assina o webhook."""
 
     secret: str = field(default="", repr=False)
 
@@ -77,7 +76,7 @@ class BaseWebhookAuth:
             headers: Cabeçalhos da requisição. Case-insensitive.
 
         Raises:
-            WebhookVerificationError: A requisição não veio do provedor, ou o
+            WebhookVerificationError: A requisição não veio do gateway, ou o
                 corpo está ilegível.
         """
         raise NotImplementedError
@@ -86,7 +85,7 @@ class BaseWebhookAuth:
         if not self.secret:
             return [
                 Error(
-                    f"Segredo de webhook ausente para '{self.provider}'; sem ele "
+                    f"Segredo de webhook ausente para '{self.gateway}'; sem ele "
                     f"não há como autenticar as notificações recebidas.",
                     id="django_checkouts.E002",
                 )
@@ -99,8 +98,8 @@ class BaseWebhookAuth:
         value = normalize_headers(headers).get(name)
         if not value:
             raise WebhookVerificationError(
-                f"Webhook de {self.provider} sem o cabeçalho '{name}'. Ou a "
-                f"requisição não veio do provedor, ou um proxy à frente da "
+                f"Webhook de {self.gateway} sem o cabeçalho '{name}'. Ou a "
+                f"requisição não veio do gateway, ou um proxy à frente da "
                 f"aplicação está removendo o cabeçalho."
             )
         return value
@@ -108,7 +107,7 @@ class BaseWebhookAuth:
     def _require_secret(self) -> str:
         if not self.secret:
             raise WebhookVerificationError(
-                f"Segredo de webhook não configurado para '{self.provider}'; "
+                f"Segredo de webhook não configurado para '{self.gateway}'; "
                 f"recusando a notificação por segurança."
             )
         return self.secret
@@ -118,11 +117,11 @@ class BaseWebhookAuth:
             payload = json.loads(raw_body or b"{}")
         except (ValueError, UnicodeDecodeError) as exc:
             raise WebhookVerificationError(
-                f"O corpo do webhook de {self.provider} não é JSON válido: {exc}"
+                f"O corpo do webhook de {self.gateway} não é JSON válido: {exc}"
             ) from exc
         if not isinstance(payload, dict):
             raise WebhookVerificationError(
-                f"Esperava um objeto JSON no webhook de {self.provider}, "
+                f"Esperava um objeto JSON no webhook de {self.gateway}, "
                 f"e recebi {type(payload).__name__}."
             )
         return payload
@@ -145,7 +144,7 @@ class HeaderTokenWebhookAuth(BaseWebhookAuth):
         if not hmac.compare_digest(expected, received):
             raise WebhookVerificationError(
                 f"O token em '{self.header}' não confere com o configurado para "
-                f"'{self.provider}'."
+                f"'{self.gateway}'."
             )
         return self._decode(raw_body)
 
@@ -166,7 +165,7 @@ class Sha256BodyWebhookAuth(BaseWebhookAuth):
         expected = hashlib.sha256(token.encode() + b"-" + raw_body).hexdigest()
         if not hmac.compare_digest(expected, received.lower()):
             raise WebhookVerificationError(
-                f"O hash em '{self.header}' não confere para '{self.provider}'. "
+                f"O hash em '{self.header}' não confere para '{self.gateway}'. "
                 f"Causa mais comum: o corpo foi reserializado antes da "
                 f"verificação — passe request.body cru, não "
                 f"json.dumps(request.data)."

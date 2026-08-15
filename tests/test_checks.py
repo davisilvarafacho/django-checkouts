@@ -13,7 +13,6 @@ from django_checkouts.gateways.base import BaseCheckoutGateway
 from django_checkouts.gateways.stripe.capabilities import STRIPE_CAPABILITIES
 
 STRIPE_PATH = "django_checkouts.gateways.stripe.StripeGateway"
-LEGACY_PATH = "django_checkouts.providers.stripe.StripeCheckoutProvider"
 
 
 def variants(**config):
@@ -69,19 +68,6 @@ def test_bad_path_or_configuration_is_reported() -> None:
             messages = check_checkout_gateways()
 
         assert [message.id for message in messages] == ["django_checkouts.E001"]
-
-
-def test_legacy_provider_path_is_rejected() -> None:
-    configured = {
-        "stripe": (
-            LEGACY_PATH,
-            {"api_key": "sk_test_ok", "webhook_secret": "whsec_ok"},
-        )
-    }
-    with override_settings(CHECKOUT_VARIANTS=configured):
-        messages = check_checkout_gateways()
-
-    assert [message.id for message in messages] == ["django_checkouts.E001"]
 
 
 def test_checks_never_call_stripe(monkeypatch) -> None:
