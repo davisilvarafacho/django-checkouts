@@ -43,7 +43,7 @@ def capture_create(monkeypatch, load_fixture):
 
     def fake_create(**kwargs):
         captured.update(kwargs)
-        return load_fixture("session_open.json")
+        return load_fixture("gateways/stripe/fixtures/session_open.json")
 
     monkeypatch.setattr(stripe.checkout.Session, "create", staticmethod(fake_create))
     return captured
@@ -189,7 +189,11 @@ class TestRetrieveAndCancel:
         monkeypatch.setattr(
             stripe.checkout.Session,
             "retrieve",
-            staticmethod(lambda *a, **k: load_fixture("session_paid.json")),
+            staticmethod(
+                lambda *a, **k: load_fixture(
+                    "gateways/stripe/fixtures/session_paid.json"
+                )
+            ),
         )
         data = provider.retrieve_checkout("cs_test_a1b2c3")
         assert data.status == CheckoutStatus.PAID
@@ -206,7 +210,7 @@ class TestRetrieveAndCancel:
 
         def fake_expire(session_id, **kwargs):
             called["id"] = session_id
-            payload = load_fixture("session_open.json")
+            payload = load_fixture("gateways/stripe/fixtures/session_open.json")
             payload["status"] = "expired"
             return payload
 

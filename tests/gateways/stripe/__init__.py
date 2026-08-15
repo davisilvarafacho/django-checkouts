@@ -1,0 +1,2 @@
+"""Testes do gateway Stripe."""
+
