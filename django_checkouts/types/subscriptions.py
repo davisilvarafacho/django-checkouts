@@ -13,6 +13,7 @@ from django_checkouts.enums import ProrationBehavior
 from django_checkouts.types.common import Price
 from django_checkouts.types.common import normalize_currency
 from django_checkouts.types.common import normalize_utc
+from django_checkouts.types.common import validate_integer
 from django_checkouts.types.common import validate_positive_integer
 
 if TYPE_CHECKING:
@@ -115,6 +116,8 @@ class SubscriptionItem:
 
     def __post_init__(self) -> None:
         validate_positive_integer(self.quantity, "quantity")
+        if self.unit_amount is not None:
+            validate_integer(self.unit_amount, "unit_amount")
         if self.currency is not None:
             object.__setattr__(self, "currency", normalize_currency(self.currency))
         object.__setattr__(self, "raw", MappingProxyType(deepcopy(dict(self.raw))))

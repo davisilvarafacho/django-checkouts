@@ -19,6 +19,12 @@ def validate_positive_integer(value: int, field_name: str) -> None:
         raise ValueError(f"{field_name} deve ser um inteiro positivo.")
 
 
+def validate_integer(value: int, field_name: str) -> None:
+    """Recusa booleanos e valores não inteiros, sem restringir o sinal."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{field_name} deve ser um inteiro na menor unidade monetária.")
+
+
 def normalize_currency(currency: str) -> str:
     """Normaliza um código ISO 4217 simples para maiúsculas."""
     if not isinstance(currency, str) or len(currency) != 3 or not currency.isalpha():

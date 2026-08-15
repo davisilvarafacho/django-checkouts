@@ -15,7 +15,14 @@ if TYPE_CHECKING:
     from django_checkouts.enums import Gateway
 
 
-@dataclass(frozen=True, slots=True)
+def _sanitize_gateway_message(message: str | None) -> str | None:
+    """Keep external diagnostics useful without retaining untrusted secrets."""
+    if message is None:
+        return None
+    return "O gateway retornou uma mensagem de erro externa."
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class RetryAdvice:
     """Orientação que o consumidor pode aplicar após uma falha."""
 
@@ -94,7 +101,11 @@ class GatewayError(CheckoutError):
         gateway_message: str | None = None,
         retry_advice: RetryAdvice | None = None,
     ) -> None:
-        super().__init__(message, code=code, gateway_message=gateway_message)
+        super().__init__(
+            message,
+            code=code,
+            gateway_message=_sanitize_gateway_message(gateway_message),
+        )
         self.gateway = gateway
         self.variant = variant
         self.retry_advice = retry_advice or self.default_retry_advice
@@ -108,14 +119,6 @@ class GatewayTemporaryError(GatewayError):
 
 class GatewayPermanentError(GatewayError):
     """Falha definitiva que não deve ser repetida sem conciliação ou mudança."""
-
-
-class GatewayProtocolError(GatewayPermanentError):
-    """Resposta externa incompatível com o contrato normalizado."""
-
-
-class ResourceNotFound(GatewayPermanentError):
-    """O recurso solicitado não existe no gateway."""
 
 
 class ProviderTemporaryError(GatewayTemporaryError):
@@ -152,6 +155,34 @@ class ProviderPermanentError(GatewayPermanentError):
             code=code,
             gateway_message=gateway_message,
         )
+
+
+class GatewayProtocolError(ProviderPermanentError):
+    """Resposta externa incompatível com o contrato normalizado."""
+
+    def __init__(
+        self,
+        message: str = "",
+        *,
+        gateway: Gateway | str,
+        variant: str,
+        code: str | int | None = None,
+        gateway_message: str | None = None,
+        retry_advice: RetryAdvice | None = None,
+    ) -> None:
+        GatewayError.__init__(
+            self,
+            message,
+            gateway=gateway,
+            variant=variant,
+            code=code,
+            gateway_message=gateway_message,
+            retry_advice=retry_advice,
+        )
+
+
+class ResourceNotFound(GatewayPermanentError):
+    """O recurso solicitado não existe no gateway."""
 
 
 class CheckoutNotFound(ResourceNotFound):

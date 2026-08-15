@@ -17,6 +17,7 @@ from django_checkouts.types.common import InlinePrice
 from django_checkouts.types.common import Recurrence
 from django_checkouts.types.common import normalize_currency
 from django_checkouts.types.common import normalize_utc
+from django_checkouts.types.common import validate_integer
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -93,6 +94,7 @@ class Checkout:
     raw: Mapping[str, object] = field(repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        validate_integer(self.amount_total, "amount_total")
         object.__setattr__(self, "currency", normalize_currency(self.currency))
         object.__setattr__(
             self, "expires_at", normalize_utc(self.expires_at, "expires_at")

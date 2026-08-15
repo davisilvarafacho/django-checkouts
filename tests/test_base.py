@@ -21,7 +21,7 @@ from django_checkouts.enums import CheckoutMode
 from django_checkouts.enums import CheckoutStatus
 from django_checkouts.enums import PaymentMethod
 from django_checkouts.exceptions import CapabilityNotSupported
-from django_checkouts.exceptions import ProviderPermanentError
+from django_checkouts.exceptions import GatewayProtocolError
 from django_checkouts.exceptions import UnsupportedPaymentMethod
 from django_checkouts.exceptions import ValidationError
 
@@ -198,7 +198,7 @@ class TestStatusMapping:
         assert provider.map_status("ok") == CheckoutStatus.PAID
 
     def test_unknown_status_raises_with_actionable_message(self, provider):
-        with pytest.raises(ProviderPermanentError, match="STATUS_MAP"):
+        with pytest.raises(GatewayProtocolError, match="STATUS_MAP"):
             provider.map_status("estado_novo_do_gateway")
 
     def test_unknown_event_returns_none_instead_of_raising(self, provider):

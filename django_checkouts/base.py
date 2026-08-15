@@ -36,7 +36,7 @@ from django_checkouts.enums import EventType
 from django_checkouts.enums import PaymentMethod
 from django_checkouts.enums import Provider
 from django_checkouts.exceptions import CapabilityNotSupported
-from django_checkouts.exceptions import ProviderPermanentError
+from django_checkouts.exceptions import GatewayProtocolError
 from django_checkouts.exceptions import UnsupportedPaymentMethod
 from django_checkouts.exceptions import ValidationError
 
@@ -193,9 +193,11 @@ class BaseCheckoutProvider:
         try:
             return self.STATUS_MAP[gateway_status]
         except KeyError as exc:
-            raise ProviderPermanentError(
+            raise GatewayProtocolError(
                 f"O provedor '{self.name}' devolveu um status não mapeado: "
-                f"'{gateway_status}'. Acrescente-o ao STATUS_MAP."
+                f"'{gateway_status}'. Acrescente-o ao STATUS_MAP.",
+                gateway=self.name,
+                variant="legacy",
             ) from exc
 
     def map_event(self, gateway_event: str) -> EventType | None:

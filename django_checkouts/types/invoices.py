@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from django_checkouts.types.common import normalize_currency
 from django_checkouts.types.common import normalize_utc
+from django_checkouts.types.common import validate_integer
 from django_checkouts.types.common import validate_positive_integer
 
 if TYPE_CHECKING:
@@ -38,6 +39,9 @@ class InvoiceLine:
 
     def __post_init__(self) -> None:
         validate_positive_integer(self.quantity, "quantity")
+        if self.unit_amount is not None:
+            validate_integer(self.unit_amount, "unit_amount")
+        validate_integer(self.amount, "amount")
         object.__setattr__(self, "currency", normalize_currency(self.currency))
         object.__setattr__(
             self, "period_start", normalize_utc(self.period_start, "period_start")
@@ -73,6 +77,8 @@ class Invoice:
     raw: Mapping[str, object] = field(repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        for field_name in ("amount_due", "amount_paid", "amount_remaining"):
+            validate_integer(getattr(self, field_name), field_name)
         object.__setattr__(self, "currency", normalize_currency(self.currency))
         for field_name in ("due_at", "paid_at", "next_payment_attempt_at"):
             object.__setattr__(
