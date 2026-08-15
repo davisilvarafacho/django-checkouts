@@ -15,6 +15,7 @@ from django_checkouts.enums import CancellationTiming
 from django_checkouts.enums import ChangeTiming
 from django_checkouts.enums import ProrationBehavior
 from django_checkouts.enums import SubscriptionStatus
+from django_checkouts.exceptions import CapabilityNotSupported
 from django_checkouts.exceptions import GatewayProtocolError
 from django_checkouts.exceptions import ValidationError
 from django_checkouts.gateways.stripe import StripeGateway
@@ -118,12 +119,7 @@ def test_change_maps_every_item_operation(stripe_client, stripe_mock, load_fixtu
             ),
             RemoveItem(item_id="si_2"),
             AddItem(
-                price=InlinePrice(
-                    name="Suporte premium",
-                    description="Atendimento prioritário",
-                    unit_amount=7500,
-                    currency="BRL",
-                ),
+                price=CatalogPrice(external_id="price_support"),
                 quantity=1,
             ),
         ),
@@ -138,21 +134,42 @@ def test_change_maps_every_item_operation(stripe_client, stripe_mock, load_fixtu
     assert stripe_mock.Subscription.modify.call_args.kwargs["items"] == [
         {"id": "si_1", "price": "price_enterprise", "quantity": 30},
         {"id": "si_2", "deleted": True},
-        {
-            "price_data": {
-                "currency": "brl",
-                "unit_amount": 7500,
-                "product_data": {
-                    "name": "Suporte premium",
-                    "description": "Atendimento prioritário",
-                },
-            },
-            "quantity": 1,
-        },
+        {"price": "price_support", "quantity": 1},
     ]
     assert stripe_mock.Subscription.modify.call_args.kwargs["metadata"] == {
         "tenant": "42"
     }
+
+
+@pytest.mark.parametrize("timing", list(ChangeTiming))
+@pytest.mark.parametrize(
+    "change",
+    [
+        AddItem(
+            price=InlinePrice(name="Suporte", unit_amount=7500),
+            quantity=1,
+        ),
+        ReplacePrice(
+            item_id="si_1",
+            price=InlinePrice(name="Enterprise", unit_amount=9900),
+        ),
+    ],
+)
+def test_change_rejects_inline_price_before_any_sdk_call(
+    stripe_client, stripe_mock, timing, change
+):
+    with pytest.raises(CapabilityNotSupported, match="inline"):
+        stripe_client.subscriptions.change(
+            "sub_1",
+            ChangeSubscription(changes=(change,), timing=timing),
+            idempotency_key="sub_1:inline:v1",
+        )
+
+    stripe_mock.Subscription.retrieve.assert_not_called()
+    stripe_mock.Subscription.modify.assert_not_called()
+    stripe_mock.Subscription.cancel.assert_not_called()
+    stripe_mock.SubscriptionSchedule.create.assert_not_called()
+    stripe_mock.SubscriptionSchedule.modify.assert_not_called()
 
 
 @pytest.mark.parametrize(

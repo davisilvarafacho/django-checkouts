@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 
 from django_checkouts.enums import CancellationTiming
 from django_checkouts.enums import ChangeTiming
+from django_checkouts.enums import Gateway
 from django_checkouts.enums import SubscriptionStatus
+from django_checkouts.exceptions import CapabilityNotSupported
 from django_checkouts.exceptions import GatewayProtocolError
 from django_checkouts.exceptions import ValidationError
 from django_checkouts.gateways.commands import CancelRemoteSubscription
@@ -18,6 +20,7 @@ from django_checkouts.gateways.stripe.mapping import PRORATION_MAP
 from django_checkouts.gateways.stripe.mapping import build_subscription_change_items
 from django_checkouts.gateways.stripe.mapping import scheduled_subscription_phases
 from django_checkouts.gateways.stripe.mapping import subscription_from_stripe
+from django_checkouts.types import InlinePrice
 
 if TYPE_CHECKING:
     from django_checkouts.capabilities import GatewayCapabilities
@@ -55,8 +58,14 @@ class StripeChangeSubscriptionHandler:
         command: ChangeRemoteSubscription,
         capabilities: GatewayCapabilities,
     ) -> None:
-        del command
         del capabilities
+        if any(
+            isinstance(getattr(change, "price", None), InlinePrice)
+            for change in command.request.changes
+        ):
+            raise CapabilityNotSupported(
+                str(Gateway.STRIPE), "subscription_inline_prices"
+            )
 
     def handle(
         self, command: ChangeRemoteSubscription, context: ExecutionContext
