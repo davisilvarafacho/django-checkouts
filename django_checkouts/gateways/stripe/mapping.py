@@ -90,8 +90,7 @@ def build_checkout_params(request: CheckoutCreate) -> dict[str, Any]:
 
 def checkout_from_stripe(raw: object, *, variant: str) -> Checkout:
     """Normaliza uma sessão, recusando estados financeiros desconhecidos."""
-    if not isinstance(raw, Mapping):
-        raise _protocol_error(variant, "O Stripe devolveu um checkout inválido.")
+    raw = _response_mapping(raw, variant=variant)
 
     external_id = _optional_string(raw.get("id"), variant, "id")
     if not external_id:
@@ -123,7 +122,7 @@ def checkout_from_stripe(raw: object, *, variant: str) -> Checkout:
             "O checkout do Stripe informou amount_total inválido.",
         )
 
-    currency = raw.get("currency") or "BRL"
+    currency = raw.get("currency")
     if not isinstance(currency, str):
         raise _protocol_error(
             variant,
@@ -156,6 +155,24 @@ def checkout_from_stripe(raw: object, *, variant: str) -> Checkout:
             variant,
             "O Stripe devolveu campos incompatíveis no checkout.",
         ) from error
+
+
+def _response_mapping(raw: object, *, variant: str) -> Mapping[str, object]:
+    if isinstance(raw, Mapping):
+        return raw
+
+    to_dict = getattr(raw, "to_dict", None)
+    if callable(to_dict):
+        try:
+            converted = to_dict()
+        except Exception as error:
+            raise _protocol_error(
+                variant, "O Stripe devolveu um checkout inválido."
+            ) from error
+        if isinstance(converted, Mapping):
+            return dict(converted)
+
+    raise _protocol_error(variant, "O Stripe devolveu um checkout inválido.")
 
 
 def _line_item(item: CheckoutItem, request: CheckoutCreate) -> dict[str, Any]:

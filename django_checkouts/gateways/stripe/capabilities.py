@@ -45,4 +45,3 @@ STRIPE_CAPABILITIES = GatewayCapabilities(
 )
 
 __all__ = ["STRIPE_CAPABILITIES"]
-

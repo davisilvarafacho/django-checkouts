@@ -19,4 +19,3 @@ class StripeCheckoutOptions(GatewayOptions):
 
 
 __all__ = ["StripeCheckoutOptions"]
-

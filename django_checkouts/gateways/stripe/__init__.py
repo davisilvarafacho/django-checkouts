@@ -6,4 +6,3 @@ from django_checkouts.gateways.stripe.gateway import StripeGateway
 from django_checkouts.gateways.stripe.options import StripeCheckoutOptions
 
 __all__ = ["StripeCheckoutOptions", "StripeGateway"]
-

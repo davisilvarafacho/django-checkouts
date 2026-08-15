@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 SUCCESS_URL = "https://example.test/success"
+MISSING = object()
 
 
 @pytest.fixture
@@ -122,6 +123,10 @@ def payment_checkout(
         metadata=metadata or {},
         gateway_options=gateway_options,
     )
+
+
+def stripe_session(payload: Mapping[str, object]) -> object:
+    return stripe.checkout.Session.construct_from(dict(payload), "sk_test")
 
 
 def test_subscription_checkout_sends_quantity_and_key(
@@ -292,6 +297,56 @@ def test_invalid_stripe_expiration_fails_before_sdk(
     stripe_mock.checkout.Session.create.assert_not_called()
 
 
+def test_create_normalizes_an_sdk_session(
+    stripe_client, stripe_mock, load_fixture
+):
+    session = stripe_session(load_fixture("session_open.json"))
+    stripe_mock.checkout.Session.create.return_value = session
+
+    checkout = stripe_client.checkouts.create(
+        payment_checkout(), idempotency_key="sdk-create:v1"
+    )
+
+    assert checkout.external_id == "cs_test_a1b2c3"
+    assert checkout.status is CheckoutStatus.PENDING
+    assert isinstance(checkout.raw["customer_details"], dict)
+    assert checkout.raw["customer_details"]["email"] == "pagador@exemplo.com.br"
+
+
+def test_retrieve_normalizes_an_sdk_session(
+    stripe_client, stripe_mock, load_fixture
+):
+    stripe_mock.checkout.Session.retrieve.return_value = stripe_session(
+        load_fixture("session_paid.json")
+    )
+
+    checkout = stripe_client.checkouts.retrieve("cs_test_a1b2c3")
+
+    assert checkout.status is CheckoutStatus.PAID
+    assert checkout.customer == Customer(
+        name="Maria Souza",
+        email="pagador@exemplo.com.br",
+        phone="+5511999999999",
+        tax_id="12345678909",
+        external_id="cus_ABC123",
+    )
+
+
+def test_cancel_normalizes_an_sdk_session(
+    stripe_client, stripe_mock, load_fixture
+):
+    payload = load_fixture("session_open.json")
+    payload["status"] = "expired"
+    stripe_mock.checkout.Session.expire.return_value = stripe_session(payload)
+
+    checkout = stripe_client.checkouts.cancel(
+        "cs_test_a1b2c3", idempotency_key="sdk-cancel:v1"
+    )
+
+    assert checkout.status is CheckoutStatus.EXPIRED
+    assert checkout.raw["status"] == "expired"
+
+
 def test_retrieve_strictly_normalizes_session(
     stripe_client, stripe_mock, load_fixture
 ):
@@ -375,6 +430,29 @@ def test_unknown_status_or_mode_is_a_protocol_error(
 ):
     raw = load_fixture("session_open.json")
     raw[field] = value
+    stripe_mock.checkout.Session.retrieve.return_value = raw
+
+    with pytest.raises(GatewayProtocolError):
+        stripe_client.checkouts.retrieve("cs_1")
+
+
+@pytest.mark.parametrize(
+    "currency",
+    [
+        pytest.param(MISSING, id="missing"),
+        pytest.param(None, id="null"),
+        pytest.param("", id="empty"),
+        pytest.param("br", id="unusable"),
+    ],
+)
+def test_missing_or_unusable_currency_is_a_protocol_error(
+    stripe_client, stripe_mock, load_fixture, currency
+):
+    raw = load_fixture("session_open.json")
+    if currency is MISSING:
+        raw.pop("currency")
+    else:
+        raw["currency"] = currency
     stripe_mock.checkout.Session.retrieve.return_value = raw
 
     with pytest.raises(GatewayProtocolError):

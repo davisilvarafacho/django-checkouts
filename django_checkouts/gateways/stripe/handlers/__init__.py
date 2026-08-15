@@ -17,4 +17,3 @@ __all__ = [
     "StripeCreateCheckoutHandler",
     "StripeRetrieveCheckoutHandler",
 ]
-
