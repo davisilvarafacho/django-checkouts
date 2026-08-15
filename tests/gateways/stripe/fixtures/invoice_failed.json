@@ -1,0 +1,41 @@
+{
+  "id": "in_failed_1",
+  "object": "invoice",
+  "status": "open",
+  "billing_reason": "subscription_create",
+  "subscription": "sub_1",
+  "customer": "cus_42",
+  "amount_due": 4900,
+  "amount_paid": 0,
+  "amount_remaining": 4900,
+  "currency": "brl",
+  "lines": {
+    "object": "list",
+    "data": [
+      {
+        "id": "il_failed_1",
+        "object": "line_item",
+        "description": "Plano Pro",
+        "quantity": 1,
+        "amount": 4900,
+        "currency": "brl",
+        "subscription_item": "si_1",
+        "period": {"start": 1785542400, "end": 1788220800},
+        "price": {
+          "id": "price_pro",
+          "object": "price",
+          "unit_amount": 4900,
+          "currency": "brl"
+        }
+      }
+    ],
+    "has_more": false,
+    "url": "/v1/invoices/in_failed_1/lines"
+  },
+  "due_date": null,
+  "status_transitions": {"paid_at": null},
+  "next_payment_attempt": 1785628800,
+  "attempt_count": 2,
+  "hosted_invoice_url": "https://invoice.stripe.test/in_failed_1",
+  "metadata": {"reference_id": "signup-42"}
+}

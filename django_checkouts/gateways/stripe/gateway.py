@@ -16,8 +16,13 @@ from django_checkouts.exceptions import RetryAdvice
 from django_checkouts.gateways.base import BaseCheckoutGateway
 from django_checkouts.gateways.stripe.capabilities import STRIPE_CAPABILITIES
 from django_checkouts.gateways.stripe.handlers import StripeCancelCheckoutHandler
+from django_checkouts.gateways.stripe.handlers import StripeCancelSubscriptionHandler
+from django_checkouts.gateways.stripe.handlers import StripeChangeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeCreateCheckoutHandler
+from django_checkouts.gateways.stripe.handlers import StripeResumeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveCheckoutHandler
+from django_checkouts.gateways.stripe.handlers import StripeRetrieveInvoiceHandler
+from django_checkouts.gateways.stripe.handlers import StripeRetrieveSubscriptionHandler
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,6 +44,11 @@ class StripeGateway(BaseCheckoutGateway):
             StripeCreateCheckoutHandler(),
             StripeRetrieveCheckoutHandler(),
             StripeCancelCheckoutHandler(),
+            StripeRetrieveSubscriptionHandler(),
+            StripeChangeSubscriptionHandler(),
+            StripeCancelSubscriptionHandler(),
+            StripeResumeSubscriptionHandler(),
+            StripeRetrieveInvoiceHandler(),
         ),
     )
 

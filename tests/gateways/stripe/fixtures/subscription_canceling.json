@@ -1,0 +1,34 @@
+{
+  "id": "sub_1",
+  "object": "subscription",
+  "status": "active",
+  "customer": "cus_42",
+  "items": {
+    "object": "list",
+    "data": [
+      {
+        "id": "si_1",
+        "object": "subscription_item",
+        "quantity": 10,
+        "price": {
+          "id": "price_pro",
+          "object": "price",
+          "unit_amount": 4900,
+          "currency": "brl",
+          "recurring": {"interval": "month", "interval_count": 1}
+        }
+      }
+    ],
+    "has_more": false,
+    "url": "/v1/subscription_items?subscription=sub_1"
+  },
+  "current_period_start": 1785542400,
+  "current_period_end": 1788220800,
+  "trial_end": null,
+  "cancel_at": 1788220800,
+  "cancel_at_period_end": true,
+  "canceled_at": 1786000000,
+  "ended_at": null,
+  "latest_invoice": "in_paid_1",
+  "metadata": {"reference_id": "contract-42"}
+}
