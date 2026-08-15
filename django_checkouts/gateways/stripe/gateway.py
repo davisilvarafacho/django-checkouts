@@ -19,10 +19,12 @@ from django_checkouts.gateways.stripe.handlers import StripeCancelCheckoutHandle
 from django_checkouts.gateways.stripe.handlers import StripeCancelSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeChangeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeCreateCheckoutHandler
+from django_checkouts.gateways.stripe.handlers import StripeListEventsHandler
 from django_checkouts.gateways.stripe.handlers import StripeResumeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveCheckoutHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveInvoiceHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveSubscriptionHandler
+from django_checkouts.gateways.stripe.webhooks import StripeVerifyWebhookHandler
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -49,6 +51,7 @@ class StripeGateway(BaseCheckoutGateway):
             StripeCancelSubscriptionHandler(),
             StripeResumeSubscriptionHandler(),
             StripeRetrieveInvoiceHandler(),
+            StripeListEventsHandler(),
         ),
     )
 
@@ -60,6 +63,10 @@ class StripeGateway(BaseCheckoutGateway):
         sandbox: bool = True,
         variant: str = str(Gateway.STRIPE),
     ) -> None:
+        self.handlers = cast(
+            "tuple[CommandHandler[Any], ...]",
+            (*self.handlers, StripeVerifyWebhookHandler(webhook_secret)),
+        )
         super().__init__(variant=variant)
         self.api_key = api_key
         self.webhook_secret = webhook_secret

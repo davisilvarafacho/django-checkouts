@@ -1,0 +1,16 @@
+{
+  "id": "evt_unknown_1",
+  "object": "event",
+  "type": "customer.tax_id.updated",
+  "created": 1785542600,
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "txi_1",
+      "object": "tax_id",
+      "customer": "cus_42",
+      "type": "br_cpf",
+      "value": "***"
+    }
+  }
+}

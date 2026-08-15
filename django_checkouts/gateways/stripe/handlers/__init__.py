@@ -11,6 +11,7 @@ from django_checkouts.gateways.stripe.handlers.checkouts import (
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeRetrieveCheckoutHandler,
 )
+from django_checkouts.gateways.stripe.handlers.events import StripeListEventsHandler
 from django_checkouts.gateways.stripe.handlers.invoices import (
     StripeRetrieveInvoiceHandler,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "StripeCancelSubscriptionHandler",
     "StripeChangeSubscriptionHandler",
     "StripeCreateCheckoutHandler",
+    "StripeListEventsHandler",
     "StripeResumeSubscriptionHandler",
     "StripeRetrieveCheckoutHandler",
     "StripeRetrieveInvoiceHandler",

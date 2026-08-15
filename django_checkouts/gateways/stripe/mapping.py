@@ -11,11 +11,13 @@ from typing import Any
 from django_checkouts.enums import BillingCycle
 from django_checkouts.enums import CheckoutMode
 from django_checkouts.enums import CheckoutStatus
+from django_checkouts.enums import EventType
 from django_checkouts.enums import Gateway
 from django_checkouts.enums import InvoiceReason
 from django_checkouts.enums import InvoiceStatus
 from django_checkouts.enums import PaymentMethod
 from django_checkouts.enums import ProrationBehavior
+from django_checkouts.enums import ResourceKind
 from django_checkouts.enums import SubscriptionStatus
 from django_checkouts.exceptions import GatewayProtocolError
 from django_checkouts.gateways.stripe.options import StripeCheckoutOptions
@@ -25,6 +27,7 @@ from django_checkouts.types import Checkout
 from django_checkouts.types import CheckoutCreate
 from django_checkouts.types import CheckoutItem
 from django_checkouts.types import Customer
+from django_checkouts.types import EventPage
 from django_checkouts.types import InlinePrice
 from django_checkouts.types import Invoice
 from django_checkouts.types import InvoiceLine
@@ -34,6 +37,7 @@ from django_checkouts.types import SetQuantity
 from django_checkouts.types import Subscription
 from django_checkouts.types import SubscriptionChange
 from django_checkouts.types import SubscriptionItem
+from django_checkouts.types import WebhookEvent
 
 CYCLES: dict[BillingCycle, tuple[str, int]] = {
     BillingCycle.WEEKLY: ("week", 1),
@@ -101,6 +105,57 @@ PRORATION_MAP: dict[ProrationBehavior, str] = {
 
 STRIPE_CYCLES: dict[tuple[str, int], BillingCycle] = {
     stripe_cycle: cycle for cycle, stripe_cycle in CYCLES.items()
+}
+
+EVENT_MAP: dict[str, tuple[EventType, ResourceKind]] = {
+    "checkout.session.created": (
+        EventType.CHECKOUT_PENDING,
+        ResourceKind.CHECKOUT,
+    ),
+    "checkout.session.completed": (
+        EventType.CHECKOUT_PAID,
+        ResourceKind.CHECKOUT,
+    ),
+    "checkout.session.async_payment_succeeded": (
+        EventType.CHECKOUT_PAID,
+        ResourceKind.CHECKOUT,
+    ),
+    "checkout.session.async_payment_failed": (
+        EventType.CHECKOUT_FAILED,
+        ResourceKind.CHECKOUT,
+    ),
+    "checkout.session.expired": (
+        EventType.CHECKOUT_EXPIRED,
+        ResourceKind.CHECKOUT,
+    ),
+    "checkout.session.canceled": (
+        EventType.CHECKOUT_CANCELED,
+        ResourceKind.CHECKOUT,
+    ),
+    "customer.subscription.created": (
+        EventType.SUBSCRIPTION_CREATED,
+        ResourceKind.SUBSCRIPTION,
+    ),
+    "customer.subscription.updated": (
+        EventType.SUBSCRIPTION_UPDATED,
+        ResourceKind.SUBSCRIPTION,
+    ),
+    "customer.subscription.deleted": (
+        EventType.SUBSCRIPTION_CANCELED,
+        ResourceKind.SUBSCRIPTION,
+    ),
+    "invoice.created": (EventType.INVOICE_OPENED, ResourceKind.INVOICE),
+    "invoice.finalized": (EventType.INVOICE_OPENED, ResourceKind.INVOICE),
+    "invoice.paid": (EventType.INVOICE_PAID, ResourceKind.INVOICE),
+    "invoice.payment_failed": (
+        EventType.INVOICE_PAYMENT_FAILED,
+        ResourceKind.INVOICE,
+    ),
+    "invoice.voided": (EventType.INVOICE_VOIDED, ResourceKind.INVOICE),
+    "invoice.marked_uncollectible": (
+        EventType.INVOICE_UNCOLLECTIBLE,
+        ResourceKind.INVOICE,
+    ),
 }
 
 
@@ -377,6 +432,97 @@ def invoice_from_stripe(raw: object, *, variant: str) -> Invoice:
             variant,
             "O Stripe devolveu campos incompatíveis na fatura.",
         ) from error
+
+
+def event_from_stripe(raw: object, *, variant: str) -> WebhookEvent:
+    """Normaliza um evento já autenticado, preservando tipos desconhecidos."""
+    response = _response_mapping(raw, variant=variant)
+    event_id = _required_string(response.get("id"), variant, "event.id")
+    event_type = _required_string(response.get("type"), variant, "event.type")
+    occurred_at = _timestamp(response.get("created"), variant, "event.created")
+    if occurred_at is None:
+        raise _protocol_error(variant, "O Stripe não informou event.created.")
+
+    livemode = response.get("livemode")
+    if livemode is not None and not isinstance(livemode, bool):
+        raise _protocol_error(variant, "O Stripe informou event.livemode inválido.")
+
+    mapped = EVENT_MAP.get(event_type)
+    normalized_type = mapped[0] if mapped is not None else None
+    resource_kind = mapped[1] if mapped is not None else None
+    resource: Checkout | Subscription | Invoice | None = None
+    resource_id = None
+    if resource_kind is not None:
+        data = _optional_mapping(response.get("data"), variant, "event.data")
+        resource_raw = _optional_mapping(
+            data.get("object"), variant, "event.data.object"
+        )
+        if not resource_raw:
+            raise _protocol_error(
+                variant, "O Stripe não informou event.data.object."
+            )
+        if resource_kind == ResourceKind.CHECKOUT:
+            resource = checkout_from_stripe(resource_raw, variant=variant)
+            if (
+                event_type == "checkout.session.completed"
+                and resource.status == CheckoutStatus.PENDING
+            ):
+                normalized_type = EventType.CHECKOUT_PENDING
+        elif resource_kind == ResourceKind.SUBSCRIPTION:
+            resource = subscription_from_stripe(resource_raw, variant=variant)
+        else:
+            resource = invoice_from_stripe(resource_raw, variant=variant)
+        resource_id = resource.external_id
+
+    return WebhookEvent(
+        gateway=Gateway.STRIPE,
+        variant=variant,
+        event_id=event_id,
+        event_type=event_type,
+        type=normalized_type,
+        occurred_at=occurred_at,
+        resource_kind=resource_kind,
+        resource_id=resource_id,
+        resource=resource,
+        livemode=livemode,
+        raw=dict(response),
+    )
+
+
+def event_page_from_stripe(
+    raw: object,
+    *,
+    variant: str,
+    occurred_since: datetime,
+    occurred_before: datetime,
+) -> EventPage:
+    """Inverte a página descendente do Stripe para ordem cronológica."""
+    response = _response_mapping(raw, variant=variant)
+    remote_items = _list_data(response, variant, "events")
+    has_more = response.get("has_more")
+    if not isinstance(has_more, bool):
+        raise _protocol_error(variant, "O Stripe informou events.has_more inválido.")
+
+    next_cursor = None
+    if has_more:
+        if not remote_items:
+            raise _protocol_error(
+                variant, "O Stripe informou uma página vazia com has_more."
+            )
+        last_remote = _response_mapping(remote_items[-1], variant=variant)
+        next_cursor = _required_string(
+            last_remote.get("id"), variant, "event.id"
+        )
+
+    return EventPage(
+        items=tuple(
+            event_from_stripe(item, variant=variant)
+            for item in reversed(remote_items)
+        ),
+        next_cursor=next_cursor,
+        occurred_since=occurred_since,
+        occurred_before=occurred_before,
+    )
 
 
 def scheduled_subscription_phases(
@@ -899,6 +1045,7 @@ def _protocol_error(variant: str, message: str) -> GatewayProtocolError:
 
 __all__ = [
     "CYCLES",
+    "EVENT_MAP",
     "INVOICE_REASON_MAP",
     "INVOICE_STATUS_MAP",
     "MODE_MAP",
@@ -909,6 +1056,8 @@ __all__ = [
     "build_checkout_params",
     "build_subscription_change_items",
     "checkout_from_stripe",
+    "event_from_stripe",
+    "event_page_from_stripe",
     "invoice_from_stripe",
     "scheduled_subscription_phases",
     "subscription_from_stripe",
