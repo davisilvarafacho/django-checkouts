@@ -51,10 +51,10 @@ class StripeVerifyWebhookHandler:
                 sig_header=signature,
                 secret=self.webhook_secret,
             )
-        except (ValueError, stripe.SignatureVerificationError) as error:
+        except (ValueError, stripe.SignatureVerificationError):
             raise WebhookVerificationError(
                 "O corpo ou a assinatura do webhook do Stripe não confere."
-            ) from error
+            ) from None
         return event_from_stripe(raw, variant=context.variant)
 
 

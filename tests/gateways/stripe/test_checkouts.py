@@ -525,15 +525,32 @@ def test_missing_checkout_is_resource_not_found(stripe_client, stripe_mock):
 
 @pytest.mark.parametrize("operation", ["create", "cancel"])
 @pytest.mark.parametrize(
-    "sdk_error",
+    ("sdk_error", "public_error", "retry_disposition"),
     [
-        stripe.APIConnectionError("connection dropped"),
-        stripe.APIError("server failed", http_status=500),
-        stripe.APIError("server failed without status"),
+        (
+            stripe.APIConnectionError("connection dropped"),
+            GatewayTemporaryError,
+            RetryDisposition.RETRY_SAME_KEY,
+        ),
+        (
+            stripe.APIError("server failed", http_status=500),
+            GatewayPermanentError,
+            RetryDisposition.RECONCILE_FIRST,
+        ),
+        (
+            stripe.APIError("server failed without status"),
+            GatewayPermanentError,
+            RetryDisposition.RECONCILE_FIRST,
+        ),
     ],
 )
 def test_uncertain_mutation_error_requires_the_same_key(
-    stripe_client, stripe_mock, operation, sdk_error
+    stripe_client,
+    stripe_mock,
+    operation,
+    sdk_error,
+    public_error,
+    retry_disposition,
 ):
     if operation == "create":
         stripe_mock.checkout.Session.create.side_effect = sdk_error
@@ -549,10 +566,10 @@ def test_uncertain_mutation_error_requires_the_same_key(
             "cs_1", idempotency_key="retry:v1"
         )
 
-    with pytest.raises(GatewayTemporaryError) as caught:
+    with pytest.raises(public_error) as caught:
         perform_mutation()
 
-    assert caught.value.retry_advice.disposition is RetryDisposition.RETRY_SAME_KEY
+    assert caught.value.retry_advice.disposition is retry_disposition
 
 
 def test_read_connection_error_uses_generic_retry(stripe_client, stripe_mock):
@@ -574,5 +591,5 @@ def test_statusless_api_error_is_temporary_for_read(stripe_client, stripe_mock):
     with pytest.raises(GatewayTemporaryError) as caught:
         stripe_client.checkouts.retrieve("cs_1")
 
-    assert caught.value.code == 500
+    assert caught.value.code is None
     assert caught.value.retry_advice.disposition is RetryDisposition.RETRY

@@ -16,7 +16,6 @@ from django_checkouts.capabilities import (
 from django_checkouts.enums import Gateway  # noqa: TC001 - runtime hints
 from django_checkouts.exceptions import CapabilityNotSupported
 from django_checkouts.exceptions import CheckoutError
-from django_checkouts.exceptions import GatewayError
 from django_checkouts.exceptions import GatewayPermanentError
 from django_checkouts.gateways.commands import (
     GatewayCommand,  # noqa: TC001 - runtime hints
@@ -67,10 +66,10 @@ class BaseCheckoutGateway:
             return func(*args, **kwargs)
         except CheckoutError:
             raise
-        except Exception as error:
-            raise self.translate_error(error, mutation=mutation) from error
+        except Exception as error:  # noqa: BLE001 - fronteira traduz erros externos
+            raise self.translate_error(error, mutation=mutation) from None
 
-    def translate_error(self, error: Exception, *, mutation: bool) -> GatewayError:
+    def translate_error(self, error: Exception, *, mutation: bool) -> CheckoutError:
         """Converte falhas externas sem propagar detalhes não confiáveis."""
         del error
         del mutation
