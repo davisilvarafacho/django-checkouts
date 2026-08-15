@@ -35,9 +35,13 @@ from django_checkouts.exceptions import ConfigurationError
 
 if TYPE_CHECKING:
     from django_checkouts.base import BaseCheckoutProvider
+    from django_checkouts.client import CheckoutClient
+    from django_checkouts.enums import Gateway
     from django_checkouts.enums import Provider
+    from django_checkouts.gateways.base import BaseCheckoutGateway
 
 PROVIDER_CACHE: dict[str, BaseCheckoutProvider] = {}
+GATEWAY_CACHE: dict[str, CheckoutClient] = {}
 
 
 def get_variants() -> dict[str, tuple[str, dict[str, Any]]]:
@@ -90,6 +94,40 @@ def get_checkout_provider(
     return PROVIDER_CACHE[variant]
 
 
+def get_checkout_gateway(
+    variant: Gateway | str, **credential_overrides: object
+) -> CheckoutClient:
+    """Devolve o cliente orientado a recursos de uma variante de gateway.
+
+    Overrides representam credenciais por conta e, por isso, nunca entram no
+    cache compartilhado da variante.
+    """
+    from django_checkouts.client import CheckoutClient
+
+    variants = get_variants()
+    try:
+        dotted_path, config = variants[variant]
+    except KeyError:
+        raise ConfigurationError(
+            f"A variante de checkout '{variant}' não existe. Configuradas: "
+            f"{sorted(variants) or 'nenhuma'}. Defina-a em "
+            f"settings.CHECKOUT_VARIANTS."
+        ) from None
+
+    if credential_overrides:
+        gateway = _import_gateway_class(dotted_path, str(variant))(
+            variant=str(variant), **{**config, **credential_overrides}
+        )
+        return CheckoutClient(gateway)
+
+    if variant not in GATEWAY_CACHE:
+        gateway = _import_gateway_class(dotted_path, str(variant))(
+            variant=str(variant), **config
+        )
+        GATEWAY_CACHE[variant] = CheckoutClient(gateway)
+    return GATEWAY_CACHE[variant]
+
+
 def _import_provider_class(
     dotted_path: str, variant: str
 ) -> type[BaseCheckoutProvider]:
@@ -113,6 +151,30 @@ def _import_provider_class(
             f"'{dotted_path}' precisa ser uma subclasse de BaseCheckoutProvider."
         )
     return provider_class
+
+
+def _import_gateway_class(
+    dotted_path: str, variant: str
+) -> type[BaseCheckoutGateway]:
+    """Importa e valida uma implementação da nova fronteira de gateways."""
+    from django_checkouts.gateways.base import BaseCheckoutGateway
+
+    try:
+        gateway_class = import_string(dotted_path)
+    except ImportError as exc:
+        raise ConfigurationError(
+            f"Não consegui importar '{dotted_path}' para a variante "
+            f"'{variant}': {exc}."
+        ) from exc
+
+    if not (
+        inspect.isclass(gateway_class)
+        and issubclass(gateway_class, BaseCheckoutGateway)
+    ):
+        raise ConfigurationError(
+            f"'{dotted_path}' precisa ser uma subclasse de BaseCheckoutGateway."
+        )
+    return gateway_class
 
 
 def iter_checkout_provider_classes() -> list[tuple[str, type[BaseCheckoutProvider]]]:

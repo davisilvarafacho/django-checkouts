@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from django_checkouts.registry import GATEWAY_CACHE
 from django_checkouts.registry import PROVIDER_CACHE
 
 
@@ -12,8 +13,10 @@ from django_checkouts.registry import PROVIDER_CACHE
 def _clear_provider_cache():
     """Impede que uma variante instanciada num teste vaze para o seguinte."""
     PROVIDER_CACHE.clear()
+    GATEWAY_CACHE.clear()
     yield
     PROVIDER_CACHE.clear()
+    GATEWAY_CACHE.clear()
 
 
 TESTS_ROOT = Path(__file__).parent

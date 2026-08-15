@@ -5,11 +5,41 @@ from django.test import override_settings
 
 from django_checkouts.enums import Provider
 from django_checkouts.exceptions import ConfigurationError
+from django_checkouts.gateways.base import BaseCheckoutGateway
 from django_checkouts.registry import PROVIDER_CACHE
+from django_checkouts.registry import get_checkout_gateway
 from django_checkouts.registry import get_checkout_provider
 from django_checkouts.registry import iter_checkout_providers
 
 STRIPE_PATH = "django_checkouts.providers.stripe.StripeCheckoutProvider"
+
+
+class ConfiguredGateway(BaseCheckoutGateway):
+    name = "configured"
+    capabilities = object()
+
+
+@override_settings(
+    CHECKOUT_VARIANTS={
+        "configured": ("tests.test_registry.ConfiguredGateway", {"region": "br"})
+    }
+)
+def test_gateway_clients_are_cached_without_overrides() -> None:
+    assert get_checkout_gateway("configured") is get_checkout_gateway("configured")
+
+
+@override_settings(
+    CHECKOUT_VARIANTS={
+        "configured": ("tests.test_registry.ConfiguredGateway", {"region": "br"})
+    }
+)
+def test_gateway_overrides_bypass_client_cache() -> None:
+    first_override = get_checkout_gateway("configured", region="us")
+    second_override = get_checkout_gateway("configured", region="us")
+
+    assert first_override is not second_override
+    assert first_override is not get_checkout_gateway("configured")
+    assert first_override.variant == "configured"
 
 
 def test_resolves_configured_variant():
