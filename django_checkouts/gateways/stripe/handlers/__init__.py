@@ -5,12 +5,16 @@ from __future__ import annotations
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeCancelCheckoutHandler,
 )
+from django_checkouts.gateways.stripe.handlers.checkouts import StripeCancelSetupHandler
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeCreateCheckoutHandler,
 )
 from django_checkouts.gateways.stripe.handlers.checkouts import StripeCreateSetupHandler
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeRetrieveCheckoutHandler,
+)
+from django_checkouts.gateways.stripe.handlers.checkouts import (
+    StripeRetrieveSetupHandler,
 )
 from django_checkouts.gateways.stripe.handlers.events import StripeListEventsHandler
 from django_checkouts.gateways.stripe.handlers.invoices import (
@@ -31,6 +35,7 @@ from django_checkouts.gateways.stripe.handlers.subscriptions import (
 
 __all__ = [
     "StripeCancelCheckoutHandler",
+    "StripeCancelSetupHandler",
     "StripeCancelSubscriptionHandler",
     "StripeChangeSubscriptionHandler",
     "StripeCreateCheckoutHandler",
@@ -39,5 +44,6 @@ __all__ = [
     "StripeResumeSubscriptionHandler",
     "StripeRetrieveCheckoutHandler",
     "StripeRetrieveInvoiceHandler",
+    "StripeRetrieveSetupHandler",
     "StripeRetrieveSubscriptionHandler",
 ]

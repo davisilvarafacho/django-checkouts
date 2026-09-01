@@ -43,6 +43,17 @@ class CreateSetup(GatewayCommand[Setup]):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class RetrieveSetup(GatewayCommand[Setup]):
+    external_id: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CancelSetup(GatewayCommand[Setup]):
+    external_id: str
+    idempotency_key: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class RetrieveCheckout(GatewayCommand[Checkout]):
     """Busca um checkout pelo identificador externo."""
 

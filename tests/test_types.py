@@ -32,6 +32,8 @@ from django_checkouts.types import InlinePrice
 from django_checkouts.types import Invoice
 from django_checkouts.types import InvoiceLine
 from django_checkouts.types import SetQuantity
+from django_checkouts.types import Setup
+from django_checkouts.types import SetupCreate
 from django_checkouts.types import Subscription
 from django_checkouts.types import SubscriptionItem
 from django_checkouts.types import WebhookEvent
@@ -268,6 +270,39 @@ def test_gateway_error_redacts_external_secrets_from_message_and_repr():
     assert "abc123" not in str(error)
 
 
+@pytest.mark.parametrize("url", ["", "relative/path", "ftp://example.test/x"])
+def test_setup_create_recusa_url_invalida(url):
+    with pytest.raises(ValueError, match="URL HTTP"):
+        SetupCreate(success_url=url)
+
+
+def test_setup_create_recusa_metodos_e_metadata_invalidos():
+    with pytest.raises(ValueError, match="não vazia"):
+        SetupCreate(success_url="https://example.test/success", payment_methods=())
+    with pytest.raises(TypeError, match="PaymentMethod"):
+        SetupCreate(
+            success_url="https://example.test/success", payment_methods=("card",)
+        )
+    with pytest.raises(TypeError, match="metadata"):
+        SetupCreate(success_url="https://example.test/success", metadata={"ok": 1})
+
+
+def test_setup_normaliza_datas_e_fecha_status():
+    with pytest.raises(ValueError, match="unknown"):
+        Setup(
+            external_id="seti",
+            gateway="fake",
+            variant="fake",
+            status="unknown",
+            url=None,
+            customer=None,
+            reference_id=None,
+            expires_at=None,
+            created_at=None,
+            raw={},
+        )
+
+
 @pytest.mark.parametrize("invalid_amount", [True, 49.9])
 def test_result_money_fields_reject_bool_and_float(invalid_amount):
     checkout_kwargs = {
@@ -291,8 +326,13 @@ def test_result_money_fields_reject_bool_and_float(invalid_amount):
 
     with pytest.raises(TypeError, match="unit_amount"):
         SubscriptionItem(
-            external_id="si_123", price_id=None, quantity=1, unit_amount=invalid_amount,
-            currency=None, billing_cycle=None, raw={},
+            external_id="si_123",
+            price_id=None,
+            quantity=1,
+            unit_amount=invalid_amount,
+            currency=None,
+            billing_cycle=None,
+            raw={},
         )
     with pytest.raises(TypeError, match="unit_amount"):
         InvoiceLine(
@@ -300,14 +340,25 @@ def test_result_money_fields_reject_bool_and_float(invalid_amount):
             description=None,
             quantity=1,
             unit_amount=invalid_amount,
-            amount=100, currency="BRL", subscription_item_id=None,
-            period_start=None, period_end=None, raw={},
+            amount=100,
+            currency="BRL",
+            subscription_item_id=None,
+            period_start=None,
+            period_end=None,
+            raw={},
         )
     with pytest.raises(TypeError, match="amount"):
         InvoiceLine(
-            external_id="il_123", description=None, quantity=1, unit_amount=None,
-            amount=invalid_amount, currency="BRL", subscription_item_id=None,
-            period_start=None, period_end=None, raw={},
+            external_id="il_123",
+            description=None,
+            quantity=1,
+            unit_amount=None,
+            amount=invalid_amount,
+            currency="BRL",
+            subscription_item_id=None,
+            period_start=None,
+            period_end=None,
+            raw={},
         )
     for field_name in ("amount_due", "amount_paid", "amount_remaining"):
         kwargs = {

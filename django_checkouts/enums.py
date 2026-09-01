@@ -39,6 +39,14 @@ class CheckoutStatus(TextChoices):
     FAILED = "failed", pgettext_lazy("checkout status", "Recusado")
 
 
+class SetupStatus(TextChoices):
+    """Estado fechado de uma coleta hospedada de forma de pagamento."""
+
+    OPEN = "open", pgettext_lazy("setup status", "Aberta")
+    COMPLETE = "complete", pgettext_lazy("setup status", "Concluída")
+    EXPIRED = "expired", pgettext_lazy("setup status", "Expirada")
+
+
 class BillingCycle(TextChoices):
     """Periodicidade fechada de uma assinatura."""
 

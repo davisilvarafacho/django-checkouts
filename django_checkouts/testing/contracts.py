@@ -15,6 +15,7 @@ from typing import Any
 from django_checkouts.exceptions import CheckoutError
 from django_checkouts.gateways.commands import CancelCheckout
 from django_checkouts.gateways.commands import CancelRemoteSubscription
+from django_checkouts.gateways.commands import CancelSetup
 from django_checkouts.gateways.commands import ChangeRemoteSubscription
 from django_checkouts.gateways.commands import CreateCheckout
 from django_checkouts.gateways.commands import CreateSetup
@@ -22,6 +23,7 @@ from django_checkouts.gateways.commands import ListEvents
 from django_checkouts.gateways.commands import ResumeSubscription
 from django_checkouts.gateways.commands import RetrieveCheckout
 from django_checkouts.gateways.commands import RetrieveInvoice
+from django_checkouts.gateways.commands import RetrieveSetup
 from django_checkouts.gateways.commands import RetrieveSubscription
 from django_checkouts.gateways.commands import VerifyWebhook
 
@@ -58,7 +60,7 @@ class GatewayContractSuite:
         if capabilities.checkouts.modes:
             expected.update({CreateCheckout, RetrieveCheckout, CancelCheckout})
         if capabilities.checkouts.supports_setup:
-            expected.add(CreateSetup)
+            expected.update({CreateSetup, RetrieveSetup, CancelSetup})
         subscriptions = capabilities.subscriptions
         if subscriptions.retrieve:
             expected.add(RetrieveSubscription)

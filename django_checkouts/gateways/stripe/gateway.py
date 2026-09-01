@@ -18,6 +18,7 @@ from django_checkouts.exceptions import RetryAdvice
 from django_checkouts.gateways.base import BaseCheckoutGateway
 from django_checkouts.gateways.stripe.capabilities import STRIPE_CAPABILITIES
 from django_checkouts.gateways.stripe.handlers import StripeCancelCheckoutHandler
+from django_checkouts.gateways.stripe.handlers import StripeCancelSetupHandler
 from django_checkouts.gateways.stripe.handlers import StripeCancelSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeChangeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeCreateCheckoutHandler
@@ -26,6 +27,7 @@ from django_checkouts.gateways.stripe.handlers import StripeListEventsHandler
 from django_checkouts.gateways.stripe.handlers import StripeResumeSubscriptionHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveCheckoutHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveInvoiceHandler
+from django_checkouts.gateways.stripe.handlers import StripeRetrieveSetupHandler
 from django_checkouts.gateways.stripe.handlers import StripeRetrieveSubscriptionHandler
 from django_checkouts.gateways.stripe.webhooks import StripeVerifyWebhookHandler
 
@@ -51,6 +53,8 @@ class StripeGateway(BaseCheckoutGateway):
         (
             StripeCreateCheckoutHandler(),
             StripeCreateSetupHandler(),
+            StripeRetrieveSetupHandler(),
+            StripeCancelSetupHandler(),
             StripeRetrieveCheckoutHandler(),
             StripeCancelCheckoutHandler(),
             StripeRetrieveSubscriptionHandler(),
@@ -120,9 +124,7 @@ class StripeGateway(BaseCheckoutGateway):
                 variant=self.variant,
                 code=code,
                 gateway_message=gateway_message,
-                retry_advice=RetryAdvice(
-                    disposition=RetryDisposition.RECONCILE_FIRST
-                ),
+                retry_advice=RetryAdvice(disposition=RetryDisposition.RECONCILE_FIRST),
             )
         if isinstance(error, stripe.InvalidRequestError):
             if _is_missing_resource(error):
@@ -183,12 +185,8 @@ class StripeGateway(BaseCheckoutGateway):
                     id="django_checkouts.E001",
                 )
             )
-        if (
-            self.capabilities.webhooks.signed
-            and (
-                not isinstance(self.webhook_secret, str)
-                or not self.webhook_secret.strip()
-            )
+        if self.capabilities.webhooks.signed and (
+            not isinstance(self.webhook_secret, str) or not self.webhook_secret.strip()
         ):
             messages.append(
                 Error(
@@ -212,9 +210,7 @@ class StripeGateway(BaseCheckoutGateway):
 
 def _retry_advice(mutation: bool) -> RetryAdvice:
     disposition = (
-        RetryDisposition.RETRY_SAME_KEY
-        if mutation
-        else RetryDisposition.RETRY
+        RetryDisposition.RETRY_SAME_KEY if mutation else RetryDisposition.RETRY
     )
     return RetryAdvice(disposition=disposition)
 

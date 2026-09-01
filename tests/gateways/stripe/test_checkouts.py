@@ -147,9 +147,7 @@ def stripe_session(payload: Mapping[str, object]) -> object:
 def test_subscription_checkout_sends_quantity_and_key(
     stripe_client, stripe_mock, load_fixture
 ):
-    stripe_mock.checkout.Session.create.return_value = load_fixture(
-        "session_open.json"
-    )
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
 
     stripe_client.checkouts.create(
         subscription_checkout(quantity=10), idempotency_key="org-42:v1"
@@ -193,6 +191,44 @@ def test_setup_checkout_cria_session_sem_itens_ou_cobranca(stripe_client, stripe
     assert resultado.reference_id == "setup:42"
 
 
+def test_setup_retrieve_e_cancel_usam_seam_exclusivo(stripe_client, stripe_mock):
+    aberto = {
+        "id": "cs_setup_1",
+        "mode": "setup",
+        "status": "open",
+        "url": "https://checkout.test/setup",
+        "client_reference_id": "setup:42",
+        "customer": None,
+        "expires_at": None,
+        "created": 1_700_000_000,
+    }
+    stripe_mock.checkout.Session.retrieve.return_value = aberto
+    stripe_mock.checkout.Session.expire.return_value = {**aberto, "status": "expired"}
+
+    assert stripe_client.setups.retrieve("cs_setup_1").status == "open"
+    assert (
+        stripe_client.setups.cancel("cs_setup_1", idempotency_key="cancel:v1").status
+        == "expired"
+    )
+    assert stripe_mock.checkout.Session.retrieve.call_args.args == ("cs_setup_1",)
+    assert stripe_mock.checkout.Session.expire.call_args.args == ("cs_setup_1",)
+    assert (
+        stripe_mock.checkout.Session.expire.call_args.kwargs["idempotency_key"]
+        == "cancel:v1"
+    )
+
+
+def test_setup_mapping_recusa_checkout_disfarcado(stripe_client, stripe_mock):
+    stripe_mock.checkout.Session.retrieve.return_value = {
+        "id": "cs_payment",
+        "mode": "payment",
+        "status": "open",
+        "created": 1_700_000_000,
+    }
+    with pytest.raises(GatewayProtocolError, match="mode=setup"):
+        stripe_client.setups.retrieve("cs_payment")
+
+
 def test_subscription_pix_fails_before_sdk(stripe_client, stripe_mock):
     with pytest.raises(UnsupportedPaymentMethod):
         stripe_client.checkouts.create(
@@ -206,18 +242,14 @@ def test_subscription_pix_fails_before_sdk(stripe_client, stripe_mock):
 def test_inline_checkout_maps_portable_fields_and_typed_options(
     stripe_client, stripe_mock, load_fixture
 ):
-    stripe_mock.checkout.Session.create.return_value = load_fixture(
-        "session_open.json"
-    )
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
     expires_at = timezone.now() + timedelta(hours=1)
     request = payment_checkout(
         cancel_url="https://example.test/cancel",
         reference_id="order-42",
         expires_at=expires_at,
         metadata={"tenant": "42"},
-        customer=Customer(
-            email="buyer@example.test", external_id="cus_existing"
-        ),
+        customer=Customer(email="buyer@example.test", external_id="cus_existing"),
         gateway_options=StripeCheckoutOptions(
             allow_promotion_codes=True,
             automatic_tax=True,
@@ -271,9 +303,7 @@ def test_inline_checkout_maps_portable_fields_and_typed_options(
 def test_subscription_inline_price_maps_every_billing_cycle(
     stripe_client, stripe_mock, load_fixture, cycle, expected
 ):
-    stripe_mock.checkout.Session.create.return_value = load_fixture(
-        "session_open.json"
-    )
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
     request = payment_checkout(
         mode=CheckoutMode.SUBSCRIPTION,
         payment_methods=(PaymentMethod.CARD,),
@@ -282,18 +312,16 @@ def test_subscription_inline_price_maps_every_billing_cycle(
 
     stripe_client.checkouts.create(request, idempotency_key=f"cycle:{cycle}")
 
-    price_data = stripe_mock.checkout.Session.create.call_args.kwargs["line_items"][
-        0
-    ]["price_data"]
+    price_data = stripe_mock.checkout.Session.create.call_args.kwargs["line_items"][0][
+        "price_data"
+    ]
     assert price_data["recurring"] == expected
 
 
 def test_customer_email_is_used_without_external_customer(
     stripe_client, stripe_mock, load_fixture
 ):
-    stripe_mock.checkout.Session.create.return_value = load_fixture(
-        "session_open.json"
-    )
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
 
     stripe_client.checkouts.create(
         payment_checkout(customer=Customer(email="buyer@example.test")),
@@ -323,12 +351,8 @@ def test_options_for_another_gateway_fail_before_sdk(stripe_client, stripe_mock)
 @pytest.mark.parametrize(
     "expires_at",
     [
-        pytest.param(
-            lambda: timezone.now() + timedelta(minutes=5), id="below-minimum"
-        ),
-        pytest.param(
-            lambda: timezone.now() + timedelta(days=2), id="above-maximum"
-        ),
+        pytest.param(lambda: timezone.now() + timedelta(minutes=5), id="below-minimum"),
+        pytest.param(lambda: timezone.now() + timedelta(days=2), id="above-maximum"),
     ],
 )
 def test_invalid_stripe_expiration_fails_before_sdk(
@@ -343,9 +367,7 @@ def test_invalid_stripe_expiration_fails_before_sdk(
     stripe_mock.checkout.Session.create.assert_not_called()
 
 
-def test_create_normalizes_an_sdk_session(
-    stripe_client, stripe_mock, load_fixture
-):
+def test_create_normalizes_an_sdk_session(stripe_client, stripe_mock, load_fixture):
     session = stripe_session(load_fixture("session_open.json"))
     stripe_mock.checkout.Session.create.return_value = session
 
@@ -359,9 +381,7 @@ def test_create_normalizes_an_sdk_session(
     assert checkout.raw["customer_details"]["email"] == "pagador@exemplo.com.br"
 
 
-def test_retrieve_normalizes_an_sdk_session(
-    stripe_client, stripe_mock, load_fixture
-):
+def test_retrieve_normalizes_an_sdk_session(stripe_client, stripe_mock, load_fixture):
     stripe_mock.checkout.Session.retrieve.return_value = stripe_session(
         load_fixture("session_paid.json")
     )
@@ -398,9 +418,7 @@ def test_retrieve_recursively_converts_legacy_sdk_response_to_plain_values(
     assert type(checkout.raw["metadata"]["items"][0]) is dict
 
 
-def test_cancel_normalizes_an_sdk_session(
-    stripe_client, stripe_mock, load_fixture
-):
+def test_cancel_normalizes_an_sdk_session(stripe_client, stripe_mock, load_fixture):
     payload = load_fixture("session_open.json")
     payload["status"] = "expired"
     stripe_mock.checkout.Session.expire.return_value = stripe_session(payload)
@@ -413,9 +431,7 @@ def test_cancel_normalizes_an_sdk_session(
     assert checkout.raw["status"] == "expired"
 
 
-def test_retrieve_strictly_normalizes_session(
-    stripe_client, stripe_mock, load_fixture
-):
+def test_retrieve_strictly_normalizes_session(stripe_client, stripe_mock, load_fixture):
     raw = load_fixture("session_paid.json")
     raw["subscription"] = "sub_123"
     raw["created"] = 1_785_000_000
@@ -541,9 +557,7 @@ def test_sdk_checkout_errors_are_translated(
     stripe_mock.checkout.Session.create.side_effect = sdk_error
 
     with pytest.raises(public_error):
-        stripe_client.checkouts.create(
-            payment_checkout(), idempotency_key="error:v1"
-        )
+        stripe_client.checkouts.create(payment_checkout(), idempotency_key="error:v1")
 
 
 def test_missing_checkout_is_resource_not_found(stripe_client, stripe_mock):
@@ -594,9 +608,7 @@ def test_uncertain_mutation_error_requires_the_same_key(
             return stripe_client.checkouts.create(
                 payment_checkout(), idempotency_key="retry:v1"
             )
-        return stripe_client.checkouts.cancel(
-            "cs_1", idempotency_key="retry:v1"
-        )
+        return stripe_client.checkouts.cancel("cs_1", idempotency_key="retry:v1")
 
     with pytest.raises(public_error) as caught:
         perform_mutation()

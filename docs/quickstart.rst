@@ -63,3 +63,7 @@ Use ``client.setups.create(SetupCreate(...), idempotency_key=...)`` para abrir
 uma sessão hospedada que apenas coleta uma forma de pagamento. O pedido não
 aceita itens nem valor e o Stripe recebe ``mode=setup``; não substitua esse
 fluxo por um item de preço zero.
+
+Consulte e expire esse fluxo exclusivamente com ``client.setups.retrieve`` e
+``client.setups.cancel``. ``client.checkouts.retrieve`` continua restrito a
+sessões de cobrança ``payment``/``subscription``.
