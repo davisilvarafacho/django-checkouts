@@ -161,6 +161,15 @@ EVENT_MAP: dict[str, tuple[EventType, ResourceKind]] = {
     ),
 }
 
+SETUP_EVENT_MAP = {
+    "checkout.session.created": EventType.SETUP_PENDING,
+    "checkout.session.completed": EventType.SETUP_COMPLETED,
+    "checkout.session.async_payment_succeeded": EventType.SETUP_COMPLETED,
+    "checkout.session.async_payment_failed": EventType.SETUP_FAILED,
+    "checkout.session.expired": EventType.SETUP_EXPIRED,
+    "checkout.session.canceled": EventType.SETUP_EXPIRED,
+}
+
 
 def build_checkout_params(request: CheckoutCreate) -> dict[str, Any]:
     """Traduz somente os campos portáveis e options tipadas para o SDK."""
@@ -497,7 +506,7 @@ def event_from_stripe(raw: object, *, variant: str) -> WebhookEvent:
     mapped = EVENT_MAP.get(event_type)
     normalized_type = mapped[0] if mapped is not None else None
     resource_kind = mapped[1] if mapped is not None else None
-    resource: Checkout | Subscription | Invoice | None = None
+    resource: Checkout | Setup | Subscription | Invoice | None = None
     resource_id = None
     if resource_kind is not None:
         data = _optional_mapping(response.get("data"), variant, "event.data")
@@ -507,12 +516,17 @@ def event_from_stripe(raw: object, *, variant: str) -> WebhookEvent:
         if not resource_raw:
             raise _protocol_error(variant, "O Stripe não informou event.data.object.")
         if resource_kind == ResourceKind.CHECKOUT:
-            resource = checkout_from_stripe(resource_raw, variant=variant)
-            if (
-                event_type == "checkout.session.completed"
-                and resource.status == CheckoutStatus.PENDING
-            ):
-                normalized_type = EventType.CHECKOUT_PENDING
+            if resource_raw.get("mode") == "setup":
+                resource = setup_from_stripe(resource_raw, variant=variant)
+                resource_kind = ResourceKind.SETUP
+                normalized_type = SETUP_EVENT_MAP[event_type]
+            else:
+                resource = checkout_from_stripe(resource_raw, variant=variant)
+                if (
+                    event_type == "checkout.session.completed"
+                    and resource.status == CheckoutStatus.PENDING
+                ):
+                    normalized_type = EventType.CHECKOUT_PENDING
         elif resource_kind == ResourceKind.SUBSCRIPTION:
             resource = subscription_from_stripe(resource_raw, variant=variant)
         else:

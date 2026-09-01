@@ -118,6 +118,10 @@ class EventType(TextChoices):
         "checkout.canceled",
         pgettext_lazy("event type", "Checkout cancelado"),
     )
+    SETUP_PENDING = "setup.pending", pgettext_lazy("event type", "Setup pendente")
+    SETUP_COMPLETED = "setup.completed", pgettext_lazy("event type", "Setup concluído")
+    SETUP_FAILED = "setup.failed", pgettext_lazy("event type", "Setup falhou")
+    SETUP_EXPIRED = "setup.expired", pgettext_lazy("event type", "Setup expirado")
     SUBSCRIPTION_CREATED = (
         "subscription.created",
         pgettext_lazy("event type", "Assinatura criada"),
@@ -147,6 +151,7 @@ class ResourceKind(TextChoices):
     """Tipo de recurso associado a um evento."""
 
     CHECKOUT = "checkout", pgettext_lazy("resource kind", "Checkout")
+    SETUP = "setup", pgettext_lazy("resource kind", "Setup")
     SUBSCRIPTION = "subscription", pgettext_lazy("resource kind", "Assinatura")
     INVOICE = "invoice", pgettext_lazy("resource kind", "Fatura")
 

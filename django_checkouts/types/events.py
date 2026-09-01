@@ -15,6 +15,7 @@ from django_checkouts.enums import ResourceKind  # noqa: TC001 - runtime hints
 from django_checkouts.types.checkouts import Checkout  # noqa: TC001 - runtime hints
 from django_checkouts.types.common import normalize_required_utc
 from django_checkouts.types.invoices import Invoice  # noqa: TC001 - runtime hints
+from django_checkouts.types.setups import Setup  # noqa: TC001 - runtime hints
 from django_checkouts.types.subscriptions import (
     Subscription,  # noqa: TC001 - runtime hints
 )
@@ -32,7 +33,7 @@ class WebhookEvent:
     occurred_at: datetime
     resource_kind: ResourceKind | None
     resource_id: str | None
-    resource: Checkout | Subscription | Invoice | None
+    resource: Checkout | Setup | Subscription | Invoice | None
     livemode: bool | None
     raw: Mapping[str, object] = field(repr=False, compare=False)
 
