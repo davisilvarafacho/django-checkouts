@@ -114,7 +114,9 @@ class StripeCancelSubscriptionHandler:
             if command.timing is CancellationTiming.IMMEDIATELY
             else stripe.Subscription.modify
         )
-        params: dict[str, object] = {"idempotency_key": command.idempotency_key}
+        params: dict[str, object] = {
+            "idempotency_key": command.idempotency_key
+        }
         if command.timing is CancellationTiming.PERIOD_END:
             params["cancel_at_period_end"] = True
         raw = context.call(

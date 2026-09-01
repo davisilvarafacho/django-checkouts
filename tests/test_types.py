@@ -291,13 +291,8 @@ def test_result_money_fields_reject_bool_and_float(invalid_amount):
 
     with pytest.raises(TypeError, match="unit_amount"):
         SubscriptionItem(
-            external_id="si_123",
-            price_id=None,
-            quantity=1,
-            unit_amount=invalid_amount,
-            currency=None,
-            billing_cycle=None,
-            raw={},
+            external_id="si_123", price_id=None, quantity=1, unit_amount=invalid_amount,
+            currency=None, billing_cycle=None, raw={},
         )
     with pytest.raises(TypeError, match="unit_amount"):
         InvoiceLine(
@@ -305,25 +300,14 @@ def test_result_money_fields_reject_bool_and_float(invalid_amount):
             description=None,
             quantity=1,
             unit_amount=invalid_amount,
-            amount=100,
-            currency="BRL",
-            subscription_item_id=None,
-            period_start=None,
-            period_end=None,
-            raw={},
+            amount=100, currency="BRL", subscription_item_id=None,
+            period_start=None, period_end=None, raw={},
         )
     with pytest.raises(TypeError, match="amount"):
         InvoiceLine(
-            external_id="il_123",
-            description=None,
-            quantity=1,
-            unit_amount=None,
-            amount=invalid_amount,
-            currency="BRL",
-            subscription_item_id=None,
-            period_start=None,
-            period_end=None,
-            raw={},
+            external_id="il_123", description=None, quantity=1, unit_amount=None,
+            amount=invalid_amount, currency="BRL", subscription_item_id=None,
+            period_start=None, period_end=None, raw={},
         )
     for field_name in ("amount_due", "amount_paid", "amount_remaining"):
         kwargs = {

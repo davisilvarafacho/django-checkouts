@@ -45,13 +45,17 @@ def test_package_exports_exact_release_entry_points() -> None:
 def test_resource_method_signatures_are_stable() -> None:
     expected: dict[Callable[..., object], str] = {
         CheckoutResource.create: (
-            "(self, request: 'CheckoutCreate', *, idempotency_key: 'str') -> 'Checkout'"
+            "(self, request: 'CheckoutCreate', *, idempotency_key: 'str') "
+            "-> 'Checkout'"
         ),
         CheckoutResource.retrieve: "(self, external_id: 'str') -> 'Checkout'",
         CheckoutResource.cancel: (
-            "(self, external_id: 'str', *, idempotency_key: 'str') -> 'Checkout'"
+            "(self, external_id: 'str', *, idempotency_key: 'str') "
+            "-> 'Checkout'"
         ),
-        SubscriptionResource.retrieve: ("(self, external_id: 'str') -> 'Subscription'"),
+        SubscriptionResource.retrieve: (
+            "(self, external_id: 'str') -> 'Subscription'"
+        ),
         SubscriptionResource.change: (
             "(self, external_id: 'str', request: 'ChangeSubscription', *, "
             "idempotency_key: 'str') -> 'Subscription'"
@@ -61,11 +65,13 @@ def test_resource_method_signatures_are_stable() -> None:
             "idempotency_key: 'str') -> 'Subscription'"
         ),
         SubscriptionResource.resume: (
-            "(self, external_id: 'str', *, idempotency_key: 'str') -> 'Subscription'"
+            "(self, external_id: 'str', *, idempotency_key: 'str') "
+            "-> 'Subscription'"
         ),
         InvoiceResource.retrieve: "(self, external_id: 'str') -> 'Invoice'",
         WebhookResource.verify: (
-            "(self, raw_body: 'bytes', headers: 'Mapping[str, str]') -> 'WebhookEvent'"
+            "(self, raw_body: 'bytes', headers: 'Mapping[str, str]') "
+            "-> 'WebhookEvent'"
         ),
         EventResource.list: (
             "(self, *, occurred_since: 'datetime', "
@@ -89,7 +95,9 @@ def _assert_static_result_types(
         client.checkouts.create(checkout_request, idempotency_key="key"), Checkout
     )
     assert_type(client.checkouts.retrieve("checkout"), Checkout)
-    assert_type(client.checkouts.cancel("checkout", idempotency_key="key"), Checkout)
+    assert_type(
+        client.checkouts.cancel("checkout", idempotency_key="key"), Checkout
+    )
     assert_type(client.subscriptions.retrieve("subscription"), Subscription)
     assert_type(
         client.subscriptions.change(

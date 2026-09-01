@@ -60,7 +60,9 @@ class TokenAuth(BaseAuth):
     def validate(self) -> list[CheckMessage]:
         messages: list[CheckMessage] = []
         if not self.token:
-            messages.append(Error("Token de API ausente.", id="django_checkouts.E001"))
+            messages.append(
+                Error("Token de API ausente.", id="django_checkouts.E001")
+            )
         elif self.expected_prefix and not self.token.startswith(self.expected_prefix):
             messages.append(
                 CheckWarning(

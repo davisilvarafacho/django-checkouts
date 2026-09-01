@@ -35,7 +35,9 @@ class StripeVerifyWebhookHandler:
                 "O cabeçalho Stripe-Signature não foi informado."
             )
 
-    def handle(self, command: VerifyWebhook, context: ExecutionContext) -> WebhookEvent:
+    def handle(
+        self, command: VerifyWebhook, context: ExecutionContext
+    ) -> WebhookEvent:
         import stripe
 
         signature = _signature_header(command.headers)

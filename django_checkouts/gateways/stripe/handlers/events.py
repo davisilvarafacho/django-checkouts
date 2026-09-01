@@ -20,24 +20,33 @@ class StripeListEventsHandler:
 
     command_type = ListEvents
 
-    def validate(self, command: ListEvents, capabilities: GatewayCapabilities) -> None:
+    def validate(
+        self, command: ListEvents, capabilities: GatewayCapabilities
+    ) -> None:
         maximum = capabilities.reconciliation.maximum_page_size
         if (
             isinstance(command.limit, bool)
             or not isinstance(command.limit, int)
             or not 1 <= command.limit <= maximum
         ):
-            raise ValidationError(f"limit deve ser um inteiro entre 1 e {maximum}.")
+            raise ValidationError(
+                f"limit deve ser um inteiro entre 1 e {maximum}."
+            )
         if not _is_aware(command.occurred_since) or not _is_aware(
             command.occurred_before
         ):
             raise ValidationError(
-                "occurred_since e occurred_before devem ser datetime timezone-aware."
+                "occurred_since e occurred_before devem ser datetime "
+                "timezone-aware."
             )
         if command.occurred_since >= command.occurred_before:
-            raise ValidationError("occurred_since deve ser anterior a occurred_before.")
+            raise ValidationError(
+                "occurred_since deve ser anterior a occurred_before."
+            )
 
-    def handle(self, command: ListEvents, context: ExecutionContext) -> EventPage:
+    def handle(
+        self, command: ListEvents, context: ExecutionContext
+    ) -> EventPage:
         import stripe
 
         raw = context.call(

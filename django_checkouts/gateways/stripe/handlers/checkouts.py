@@ -52,7 +52,9 @@ class StripeCreateCheckoutHandler:
         _validate_stripe_options(command.request)
         _validate_stripe_expiration(command.request)
 
-    def handle(self, command: CreateCheckout, context: ExecutionContext) -> Checkout:
+    def handle(
+        self, command: CreateCheckout, context: ExecutionContext
+    ) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(
             stripe.checkout.Session.create,
@@ -98,7 +100,9 @@ class StripeRetrieveCheckoutHandler:
         del command
         del capabilities
 
-    def handle(self, command: RetrieveCheckout, context: ExecutionContext) -> Checkout:
+    def handle(
+        self, command: RetrieveCheckout, context: ExecutionContext
+    ) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(stripe.checkout.Session.retrieve, command.external_id)
         return checkout_from_stripe(raw, variant=context.variant)
@@ -115,7 +119,9 @@ class StripeCancelCheckoutHandler:
         del command
         del capabilities
 
-    def handle(self, command: CancelCheckout, context: ExecutionContext) -> Checkout:
+    def handle(
+        self, command: CancelCheckout, context: ExecutionContext
+    ) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(
             stripe.checkout.Session.expire,
@@ -184,7 +190,9 @@ def _validate_stripe_expiration(request: CheckoutCreate) -> None:
         return
     delta = (request.expires_at - timezone.now()).total_seconds()
     if delta < MIN_EXPIRATION_SECONDS:
-        raise ValidationError("O Stripe exige validade de no mínimo 30 minutos.")
+        raise ValidationError(
+            "O Stripe exige validade de no mínimo 30 minutos."
+        )
     if delta > MAX_EXPIRATION_SECONDS:
         raise ValidationError("O Stripe exige validade de no máximo 24 horas.")
 
@@ -194,7 +202,8 @@ def _import_stripe() -> Any:
         import stripe
     except ImportError as error:  # pragma: no cover - depende do extra instalado
         raise ConfigurationError(
-            "O SDK do Stripe não está instalado. Instale django-checkouts[stripe]."
+            "O SDK do Stripe não está instalado. Instale "
+            "django-checkouts[stripe]."
         ) from error
     return stripe
 

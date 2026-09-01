@@ -64,7 +64,9 @@ def get_checkout_gateway(
     return GATEWAY_CACHE[variant]
 
 
-def _import_gateway_class(dotted_path: str, variant: str) -> type[BaseCheckoutGateway]:
+def _import_gateway_class(
+    dotted_path: str, variant: str
+) -> type[BaseCheckoutGateway]:
     """Import and validate a configured gateway class."""
     from django_checkouts.gateways.base import BaseCheckoutGateway
 
@@ -72,7 +74,8 @@ def _import_gateway_class(dotted_path: str, variant: str) -> type[BaseCheckoutGa
         gateway_class = import_string(dotted_path)
     except ImportError as exc:
         raise ConfigurationError(
-            f"Não consegui importar '{dotted_path}' para a variante '{variant}': {exc}."
+            f"Não consegui importar '{dotted_path}' para a variante "
+            f"'{variant}': {exc}."
         ) from exc
 
     if not (
