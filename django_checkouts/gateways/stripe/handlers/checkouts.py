@@ -7,6 +7,7 @@ from typing import Any
 
 from django.utils import timezone
 
+from django_checkouts.enums import CheckoutMode
 from django_checkouts.enums import Gateway
 from django_checkouts.exceptions import CapabilityNotSupported
 from django_checkouts.exceptions import ConfigurationError
@@ -14,9 +15,12 @@ from django_checkouts.exceptions import UnsupportedPaymentMethod
 from django_checkouts.exceptions import ValidationError
 from django_checkouts.gateways.commands import CancelCheckout
 from django_checkouts.gateways.commands import CreateCheckout
+from django_checkouts.gateways.commands import CreateSetup
 from django_checkouts.gateways.commands import RetrieveCheckout
 from django_checkouts.gateways.stripe.mapping import build_checkout_params
+from django_checkouts.gateways.stripe.mapping import build_setup_params
 from django_checkouts.gateways.stripe.mapping import checkout_from_stripe
+from django_checkouts.gateways.stripe.mapping import setup_from_stripe
 from django_checkouts.gateways.stripe.options import StripeCheckoutOptions
 from django_checkouts.types import CatalogPrice
 from django_checkouts.types import InlinePrice
@@ -48,9 +52,7 @@ class StripeCreateCheckoutHandler:
         _validate_stripe_options(command.request)
         _validate_stripe_expiration(command.request)
 
-    def handle(
-        self, command: CreateCheckout, context: ExecutionContext
-    ) -> Checkout:
+    def handle(self, command: CreateCheckout, context: ExecutionContext) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(
             stripe.checkout.Session.create,
@@ -59,6 +61,30 @@ class StripeCreateCheckoutHandler:
             mutation=True,
         )
         return checkout_from_stripe(raw, variant=context.variant)
+
+
+class StripeCreateSetupHandler:
+    command_type = CreateSetup
+
+    def validate(self, command: CreateSetup, capabilities: GatewayCapabilities) -> None:
+        if not capabilities.checkouts.supports_setup:
+            raise CapabilityNotSupported(str(Gateway.STRIPE), "setup")
+        supported = capabilities.checkouts.payment_methods_for(CheckoutMode.PAYMENT)
+        for method in command.request.payment_methods:
+            if method not in supported:
+                raise UnsupportedPaymentMethod(
+                    str(Gateway.STRIPE), str(method), supported
+                )
+
+    def handle(self, command: CreateSetup, context: ExecutionContext):
+        stripe = _import_stripe()
+        raw = context.call(
+            stripe.checkout.Session.create,
+            **build_setup_params(command.request),
+            idempotency_key=command.idempotency_key,
+            mutation=True,
+        )
+        return setup_from_stripe(raw, variant=context.variant)
 
 
 class StripeRetrieveCheckoutHandler:
@@ -72,9 +98,7 @@ class StripeRetrieveCheckoutHandler:
         del command
         del capabilities
 
-    def handle(
-        self, command: RetrieveCheckout, context: ExecutionContext
-    ) -> Checkout:
+    def handle(self, command: RetrieveCheckout, context: ExecutionContext) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(stripe.checkout.Session.retrieve, command.external_id)
         return checkout_from_stripe(raw, variant=context.variant)
@@ -91,9 +115,7 @@ class StripeCancelCheckoutHandler:
         del command
         del capabilities
 
-    def handle(
-        self, command: CancelCheckout, context: ExecutionContext
-    ) -> Checkout:
+    def handle(self, command: CancelCheckout, context: ExecutionContext) -> Checkout:
         stripe = _import_stripe()
         raw = context.call(
             stripe.checkout.Session.expire,
@@ -162,9 +184,7 @@ def _validate_stripe_expiration(request: CheckoutCreate) -> None:
         return
     delta = (request.expires_at - timezone.now()).total_seconds()
     if delta < MIN_EXPIRATION_SECONDS:
-        raise ValidationError(
-            "O Stripe exige validade de no mínimo 30 minutos."
-        )
+        raise ValidationError("O Stripe exige validade de no mínimo 30 minutos.")
     if delta > MAX_EXPIRATION_SECONDS:
         raise ValidationError("O Stripe exige validade de no máximo 24 horas.")
 
@@ -174,8 +194,7 @@ def _import_stripe() -> Any:
         import stripe
     except ImportError as error:  # pragma: no cover - depende do extra instalado
         raise ConfigurationError(
-            "O SDK do Stripe não está instalado. Instale "
-            "django-checkouts[stripe]."
+            "O SDK do Stripe não está instalado. Instale django-checkouts[stripe]."
         ) from error
     return stripe
 
@@ -183,6 +202,7 @@ def _import_stripe() -> Any:
 __all__ = [
     "StripeCancelCheckoutHandler",
     "StripeCreateCheckoutHandler",
+    "StripeCreateSetupHandler",
     "StripeRetrieveCheckoutHandler",
     "validate_checkout_create",
 ]

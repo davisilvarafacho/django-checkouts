@@ -69,9 +69,7 @@ def test_factory_returns_concrete_no_argument_authentication_class() -> None:
 
 def test_drf_assigns_verified_event_to_request_auth(monkeypatch) -> None:
     event = webhook_event()
-    client = SimpleNamespace(
-        webhooks=SimpleNamespace(verify=Mock(return_value=event))
-    )
+    client = SimpleNamespace(webhooks=SimpleNamespace(verify=Mock(return_value=event)))
     monkeypatch.setattr(
         "django_checkouts.integrations.drf.get_checkout_gateway",
         Mock(return_value=client),

@@ -148,9 +148,7 @@ def test_invalid_webhook_never_exposes_sdk_error(gateway, monkeypatch) -> None:
         stripe.Webhook,
         "construct_event",
         Mock(
-            side_effect=stripe.SignatureVerificationError(
-                "whsec_must_not_leak", "sig"
-            )
+            side_effect=stripe.SignatureVerificationError("whsec_must_not_leak", "sig")
         ),
     )
 

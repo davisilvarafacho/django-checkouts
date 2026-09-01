@@ -55,3 +55,11 @@ I/O. Crie um checkout com dinheiro em centavos e chave de idempotência:
 Guarde ``checkout.external_id`` e redirecione para ``checkout.url``. Para
 credenciais por conta, passe o override a ``get_checkout_gateway``; clientes
 com override não entram no cache compartilhado.
+
+Coleta de forma de pagamento
+-----------------------------
+
+Use ``client.setups.create(SetupCreate(...), idempotency_key=...)`` para abrir
+uma sessão hospedada que apenas coleta uma forma de pagamento. O pedido não
+aceita itens nem valor e o Stripe recebe ``mode=setup``; não substitua esse
+fluxo por um item de preço zero.

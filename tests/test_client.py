@@ -151,26 +151,33 @@ def test_resources_build_their_matching_commands(
     assert client.checkouts.retrieve("co_1") == "checkout"
     assert client.checkouts.cancel("co_1", idempotency_key="cancel-1") == "checkout"
     assert client.subscriptions.retrieve("sub_1") == "subscription"
-    assert client.subscriptions.change(
-        "sub_1", request, idempotency_key="change-1"
-    ) == "subscription"
-    assert client.subscriptions.cancel(
-        "sub_1",
-        timing=CancellationTiming.IMMEDIATELY,
-        idempotency_key="cancel-sub-1",
-    ) == "subscription"
+    assert (
+        client.subscriptions.change("sub_1", request, idempotency_key="change-1")
+        == "subscription"
+    )
+    assert (
+        client.subscriptions.cancel(
+            "sub_1",
+            timing=CancellationTiming.IMMEDIATELY,
+            idempotency_key="cancel-sub-1",
+        )
+        == "subscription"
+    )
     assert (
         client.subscriptions.resume("sub_1", idempotency_key="resume-1")
         == "subscription"
     )
     assert client.invoices.retrieve("in_1") == "invoice"
     assert client.webhooks.verify(b"{}", {"X-Signature": "signature"}) == "event"
-    assert client.events.list(
-        occurred_since=since,
-        occurred_before=before,
-        cursor="next",
-        limit=50,
-    ) == "events"
+    assert (
+        client.events.list(
+            occurred_since=since,
+            occurred_before=before,
+            cursor="next",
+            limit=50,
+        )
+        == "events"
+    )
 
     assert fake_gateway.commands == [
         RetrieveCheckout(external_id="co_1"),

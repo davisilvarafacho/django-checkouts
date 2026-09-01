@@ -24,9 +24,7 @@ class StripeRetrieveInvoiceHandler:
         del command
         del capabilities
 
-    def handle(
-        self, command: RetrieveInvoice, context: ExecutionContext
-    ) -> Invoice:
+    def handle(self, command: RetrieveInvoice, context: ExecutionContext) -> Invoice:
         import stripe
 
         raw = context.call(

@@ -38,9 +38,7 @@ def stripe_invoice(payload: dict[str, object]) -> object:
     return stripe.Invoice.construct_from(payload, "sk_test")
 
 
-def test_retrieve_normalizes_real_sdk_invoice(
-    stripe_client, stripe_mock, load_fixture
-):
+def test_retrieve_normalizes_real_sdk_invoice(stripe_client, stripe_mock, load_fixture):
     stripe_mock.Invoice.retrieve.return_value = stripe_invoice(
         load_fixture("invoice_paid.json")
     )
@@ -66,9 +64,7 @@ def test_retrieve_normalizes_real_sdk_invoice(
     assert invoice.lines[1].quantity == 2
     assert invoice.lines[1].unit_amount == 1200
     assert invoice.lines[1].subscription_item_id == "si_2"
-    assert invoice.lines[1].period_end == datetime.fromtimestamp(
-        1788220800, tz=UTC
-    )
+    assert invoice.lines[1].period_end == datetime.fromtimestamp(1788220800, tz=UTC)
     assert type(invoice.raw) is not dict
     assert type(invoice.raw["lines"]) is dict
 
@@ -81,9 +77,7 @@ def test_failed_invoice_maps_retry_details(stripe_client, stripe_mock, load_fixt
     assert invoice.status is InvoiceStatus.OPEN
     assert invoice.reason is InvoiceReason.INITIAL_SUBSCRIPTION
     assert invoice.attempt_count == 2
-    assert invoice.next_payment_attempt_at == datetime.fromtimestamp(
-        1785628800, tz=UTC
-    )
+    assert invoice.next_payment_attempt_at == datetime.fromtimestamp(1785628800, tz=UTC)
     assert invoice.hosted_url == "https://invoice.stripe.test/in_failed_1"
 
 

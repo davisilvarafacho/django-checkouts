@@ -25,6 +25,7 @@ class CheckoutCapabilities:
     supports_inline_prices: bool
     supports_expiration: bool
     supports_customer_prefill: bool
+    supports_setup: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "modes", frozenset(self.modes))

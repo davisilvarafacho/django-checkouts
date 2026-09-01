@@ -48,9 +48,7 @@ def test_unimportable_gateway_is_rejected() -> None:
         get_checkout_gateway("broken")
 
 
-@override_settings(
-    CHECKOUT_VARIANTS={"wrong": ("django.http.HttpResponse", {})}
-)
+@override_settings(CHECKOUT_VARIANTS={"wrong": ("django.http.HttpResponse", {})})
 def test_class_that_is_not_a_gateway_is_rejected() -> None:
     with pytest.raises(ConfigurationError, match="BaseCheckoutGateway"):
         get_checkout_gateway("wrong")

@@ -80,9 +80,7 @@ class TestSha256BodyWebhookAuth:
 
     def test_accepts_correct_digest(self, auth):
         body = b'{"id": "CHEC_123"}'
-        payload = auth.verify(
-            body, {"x-authenticity-token": self.digest(b"tok", body)}
-        )
+        payload = auth.verify(body, {"x-authenticity-token": self.digest(b"tok", body)})
         assert payload == {"id": "CHEC_123"}
 
     def test_accepts_uppercase_digest(self, auth):

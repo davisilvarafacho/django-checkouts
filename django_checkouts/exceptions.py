@@ -68,9 +68,7 @@ class CapabilityNotSupported(CheckoutError):
 class UnsupportedPaymentMethod(CheckoutError):
     """O gateway não oferece um dos meios de pagamento pedidos."""
 
-    def __init__(
-        self, gateway: str, method: str, supported: Iterable[Any]
-    ) -> None:
+    def __init__(self, gateway: str, method: str, supported: Iterable[Any]) -> None:
         super().__init__(
             f"O gateway '{gateway}' não suporta o meio de pagamento '{method}'. "
             f"Suportados: {sorted(str(item) for item in supported)}."

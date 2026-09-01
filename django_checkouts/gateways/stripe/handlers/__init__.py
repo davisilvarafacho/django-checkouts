@@ -8,6 +8,7 @@ from django_checkouts.gateways.stripe.handlers.checkouts import (
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeCreateCheckoutHandler,
 )
+from django_checkouts.gateways.stripe.handlers.checkouts import StripeCreateSetupHandler
 from django_checkouts.gateways.stripe.handlers.checkouts import (
     StripeRetrieveCheckoutHandler,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "StripeCancelSubscriptionHandler",
     "StripeChangeSubscriptionHandler",
     "StripeCreateCheckoutHandler",
+    "StripeCreateSetupHandler",
     "StripeListEventsHandler",
     "StripeResumeSubscriptionHandler",
     "StripeRetrieveCheckoutHandler",

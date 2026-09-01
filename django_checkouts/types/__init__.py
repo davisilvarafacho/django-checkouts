@@ -14,6 +14,8 @@ from django_checkouts.types.events import EventPage
 from django_checkouts.types.events import WebhookEvent
 from django_checkouts.types.invoices import Invoice
 from django_checkouts.types.invoices import InvoiceLine
+from django_checkouts.types.setups import Setup
+from django_checkouts.types.setups import SetupCreate
 from django_checkouts.types.subscriptions import AddItem
 from django_checkouts.types.subscriptions import ChangeSubscription
 from django_checkouts.types.subscriptions import RemoveItem
@@ -40,6 +42,8 @@ __all__ = [
     "RemoveItem",
     "ReplacePrice",
     "SetQuantity",
+    "Setup",
+    "SetupCreate",
     "Subscription",
     "SubscriptionChange",
     "SubscriptionItem",

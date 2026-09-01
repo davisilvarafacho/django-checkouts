@@ -70,9 +70,7 @@ def test_unknown_event_is_preserved(stripe_client, stripe_mock, load_fixture):
     payload = load_fixture("event_unknown.json")
     stripe_mock.Webhook.construct_event.return_value = payload
 
-    event = stripe_client.webhooks.verify(
-        b"{}", {"Stripe-Signature": "signature"}
-    )
+    event = stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
 
     assert event.type is None
     assert event.event_type == "customer.tax_id.updated"
@@ -100,9 +98,7 @@ def test_normalizes_invoice_event_taxonomy(
     payload["type"] = remote_type
     stripe_mock.Webhook.construct_event.return_value = payload
 
-    event = stripe_client.webhooks.verify(
-        b"{}", {"Stripe-Signature": "signature"}
-    )
+    event = stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
 
     assert event.type == expected
     assert event.type != "subscription.renewed"
@@ -127,9 +123,7 @@ def test_normalizes_checkout_event_taxonomy(
     payload["data"]["object"] = load_fixture("session_paid.json")
     stripe_mock.Webhook.construct_event.return_value = payload
 
-    event = stripe_client.webhooks.verify(
-        b"{}", {"Stripe-Signature": "signature"}
-    )
+    event = stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
 
     assert event.type == expected
     assert event.resource_kind == ResourceKind.CHECKOUT
@@ -145,9 +139,7 @@ def test_completed_checkout_with_delayed_payment_remains_pending(
     payload["data"]["object"] = session
     stripe_mock.Webhook.construct_event.return_value = payload
 
-    event = stripe_client.webhooks.verify(
-        b"{}", {"Stripe-Signature": "signature"}
-    )
+    event = stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
 
     assert event.type == EventType.CHECKOUT_PENDING
 
@@ -168,9 +160,7 @@ def test_normalizes_subscription_event_taxonomy(
     payload["data"]["object"] = load_fixture("subscription_active.json")
     stripe_mock.Webhook.construct_event.return_value = payload
 
-    event = stripe_client.webhooks.verify(
-        b"{}", {"Stripe-Signature": "signature"}
-    )
+    event = stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
 
     assert event.type == expected
     assert event.resource_kind == ResourceKind.SUBSCRIPTION
@@ -183,15 +173,11 @@ def test_normalizes_subscription_event_taxonomy(
         stripe.SignatureVerificationError("invalid signature", "signature"),
     ],
 )
-def test_translates_invalid_body_or_signature(
-    stripe_client, stripe_mock, error
-):
+def test_translates_invalid_body_or_signature(stripe_client, stripe_mock, error):
     stripe_mock.Webhook.construct_event.side_effect = error
 
     with pytest.raises(WebhookVerificationError):
-        stripe_client.webhooks.verify(
-            b"altered", {"Stripe-Signature": "signature"}
-        )
+        stripe_client.webhooks.verify(b"altered", {"Stripe-Signature": "signature"})
 
 
 def test_rejects_missing_signature_before_stripe(stripe_client, stripe_mock):
@@ -202,9 +188,7 @@ def test_rejects_missing_signature_before_stripe(stripe_client, stripe_mock):
 
 
 def test_rejects_missing_secret_before_stripe(stripe_mock):
-    client = CheckoutClient(
-        StripeGateway(api_key="sk_test", webhook_secret="")
-    )
+    client = CheckoutClient(StripeGateway(api_key="sk_test", webhook_secret=""))
 
     with pytest.raises(WebhookVerificationError, match="webhook_secret"):
         client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})
@@ -218,6 +202,4 @@ def test_rejects_incomplete_known_event(stripe_client, stripe_mock, load_fixture
     stripe_mock.Webhook.construct_event.return_value = payload
 
     with pytest.raises(GatewayProtocolError):
-        stripe_client.webhooks.verify(
-            b"{}", {"Stripe-Signature": "signature"}
-        )
+        stripe_client.webhooks.verify(b"{}", {"Stripe-Signature": "signature"})

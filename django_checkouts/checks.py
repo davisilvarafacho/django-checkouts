@@ -28,9 +28,7 @@ def check_checkout_gateways(app_configs: Any = None, **kwargs: Any) -> list:
     for variant, entry in variants.items():
         try:
             dotted_path, configuration = entry
-            if not isinstance(dotted_path, str) or not isinstance(
-                configuration, dict
-            ):
+            if not isinstance(dotted_path, str) or not isinstance(configuration, dict):
                 raise TypeError
             gateway_class = _import_gateway_class(dotted_path, str(variant))
             gateway = gateway_class(variant=str(variant), **configuration)
@@ -59,4 +57,6 @@ def _configuration_error(variant: str) -> Error:
         ),
         id="django_checkouts.E001",
     )
+
+
 __all__ = ["check_checkout_gateways"]

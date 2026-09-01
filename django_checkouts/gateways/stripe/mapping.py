@@ -34,6 +34,8 @@ from django_checkouts.types import InvoiceLine
 from django_checkouts.types import RemoveItem
 from django_checkouts.types import ReplacePrice
 from django_checkouts.types import SetQuantity
+from django_checkouts.types import Setup
+from django_checkouts.types import SetupCreate
 from django_checkouts.types import Subscription
 from django_checkouts.types import SubscriptionChange
 from django_checkouts.types import SubscriptionItem
@@ -192,6 +194,54 @@ def build_checkout_params(request: CheckoutCreate) -> dict[str, Any]:
         if options.billing_address_required:
             params["billing_address_collection"] = "required"
     return params
+
+
+def build_setup_params(request: SetupCreate) -> dict[str, Any]:
+    params: dict[str, Any] = {
+        "mode": "setup",
+        "success_url": request.success_url,
+        "payment_method_types": [
+            PAYMENT_METHODS[method] for method in request.payment_methods
+        ],
+    }
+    if request.cancel_url is not None:
+        params["cancel_url"] = request.cancel_url
+    if request.reference_id is not None:
+        params["client_reference_id"] = request.reference_id
+    if request.metadata:
+        params["metadata"] = dict(request.metadata)
+    if request.customer is not None:
+        if request.customer.external_id:
+            params["customer"] = request.customer.external_id
+        elif request.customer.email:
+            params["customer_email"] = request.customer.email
+    return params
+
+
+def setup_from_stripe(raw: object, *, variant: str) -> Setup:
+    response = _response_mapping(raw, variant=variant)
+    external_id = _optional_string(response.get("id"), variant, "id")
+    if not external_id:
+        raise _protocol_error(variant, "O setup do Stripe não informou id.")
+    status = response.get("status")
+    if status not in {"open", "complete", "expired"}:
+        raise _protocol_error(
+            variant, "O setup do Stripe informou status desconhecido."
+        )
+    return Setup(
+        external_id=external_id,
+        gateway=Gateway.STRIPE,
+        variant=variant,
+        status=status,
+        url=_optional_string(response.get("url"), variant, "url"),
+        customer=_customer_from_stripe(response, variant=variant),
+        reference_id=_optional_string(
+            response.get("client_reference_id"), variant, "client_reference_id"
+        ),
+        expires_at=_timestamp(response.get("expires_at"), variant, "expires_at"),
+        created_at=_timestamp(response.get("created"), variant, "created"),
+        raw=dict(response),
+    )
 
 
 def checkout_from_stripe(raw: object, *, variant: str) -> Checkout:
@@ -401,16 +451,10 @@ def invoice_from_stripe(raw: object, *, variant: str) -> Invoice:
             ),
             lines=tuple(
                 _invoice_line_from_stripe(line, variant=variant)
-                for line in _list_data(
-                    response.get("lines"), variant, "invoice.lines"
-                )
+                for line in _list_data(response.get("lines"), variant, "invoice.lines")
             ),
-            due_at=_timestamp(
-                response.get("due_date"), variant, "invoice.due_date"
-            ),
-            paid_at=_timestamp(
-                transitions.get("paid_at"), variant, "invoice.paid_at"
-            ),
+            due_at=_timestamp(response.get("due_date"), variant, "invoice.due_date"),
+            paid_at=_timestamp(transitions.get("paid_at"), variant, "invoice.paid_at"),
             next_payment_attempt_at=_timestamp(
                 response.get("next_payment_attempt"),
                 variant,
@@ -458,9 +502,7 @@ def event_from_stripe(raw: object, *, variant: str) -> WebhookEvent:
             data.get("object"), variant, "event.data.object"
         )
         if not resource_raw:
-            raise _protocol_error(
-                variant, "O Stripe não informou event.data.object."
-            )
+            raise _protocol_error(variant, "O Stripe não informou event.data.object.")
         if resource_kind == ResourceKind.CHECKOUT:
             resource = checkout_from_stripe(resource_raw, variant=variant)
             if (
@@ -510,14 +552,11 @@ def event_page_from_stripe(
                 variant, "O Stripe informou uma página vazia com has_more."
             )
         last_remote = _response_mapping(remote_items[-1], variant=variant)
-        next_cursor = _required_string(
-            last_remote.get("id"), variant, "event.id"
-        )
+        next_cursor = _required_string(last_remote.get("id"), variant, "event.id")
 
     return EventPage(
         items=tuple(
-            event_from_stripe(item, variant=variant)
-            for item in reversed(remote_items)
+            event_from_stripe(item, variant=variant) for item in reversed(remote_items)
         ),
         next_cursor=next_cursor,
         occurred_since=occurred_since,
@@ -543,9 +582,7 @@ def scheduled_subscription_phases(
         raise _protocol_error(
             variant, "O Stripe devolveu fases inválidas para a assinatura."
         )
-    phases = [
-        _phase_for_update(phase, variant=variant) for phase in phases_value
-    ]
+    phases = [_phase_for_update(phase, variant=variant) for phase in phases_value]
     if not phases:
         raise _protocol_error(
             variant, "O Stripe não devolveu a fase atual da assinatura."
@@ -612,14 +649,10 @@ def _subscription_price(price: CatalogPrice | InlinePrice) -> dict[str, Any]:
     }
 
 
-def _subscription_item_from_stripe(
-    raw: object, *, variant: str
-) -> SubscriptionItem:
+def _subscription_item_from_stripe(raw: object, *, variant: str) -> SubscriptionItem:
     if not isinstance(raw, Mapping):
         raise _protocol_error(variant, "O Stripe devolveu um item inválido.")
-    price = _optional_mapping(
-        raw.get("price"), variant, "subscription.item.price"
-    )
+    price = _optional_mapping(raw.get("price"), variant, "subscription.item.price")
     recurring = _optional_mapping(
         price.get("recurring"), variant, "subscription.item.price.recurring"
     )
@@ -628,9 +661,7 @@ def _subscription_item_from_stripe(
         interval = recurring.get("interval")
         interval_count = recurring.get("interval_count", 1)
         if isinstance(interval_count, bool) or not isinstance(interval_count, int):
-            raise _protocol_error(
-                variant, "O Stripe informou interval_count inválido."
-            )
+            raise _protocol_error(variant, "O Stripe informou interval_count inválido.")
         if isinstance(interval, str):
             cycle = STRIPE_CYCLES.get((interval, interval_count))
 
@@ -645,17 +676,13 @@ def _subscription_item_from_stripe(
             external_id=_required_string(
                 raw.get("id"), variant, "subscription.item.id"
             ),
-            price_id=_resource_id(
-                raw.get("price"), variant, "subscription.item.price"
-            ),
+            price_id=_resource_id(raw.get("price"), variant, "subscription.item.price"),
             quantity=_required_quantity(
                 raw.get("quantity"), variant, "subscription.item.quantity"
             ),
             unit_amount=unit_amount,
             currency=(
-                _required_string(
-                    currency, variant, "subscription.item.price.currency"
-                )
+                _required_string(currency, variant, "subscription.item.price.currency")
                 if currency is not None
                 else None
             ),
@@ -673,23 +700,15 @@ def _invoice_line_from_stripe(raw: object, *, variant: str) -> InvoiceLine:
         raise _protocol_error(variant, "O Stripe devolveu uma linha inválida.")
     price_value = raw.get("price")
     if price_value is None:
-        pricing = _optional_mapping(
-            raw.get("pricing"), variant, "invoice.line.pricing"
-        )
+        pricing = _optional_mapping(raw.get("pricing"), variant, "invoice.line.pricing")
         price_details = _optional_mapping(
             pricing.get("price_details"),
             variant,
             "invoice.line.pricing.price_details",
         )
         price_value = price_details.get("price")
-    price = (
-        price_value
-        if isinstance(price_value, Mapping)
-        else {}
-    )
-    period = _optional_mapping(
-        raw.get("period"), variant, "invoice.line.period"
-    )
+    price = price_value if isinstance(price_value, Mapping) else {}
+    period = _optional_mapping(raw.get("period"), variant, "invoice.line.period")
     unit_amount = price.get("unit_amount")
     if unit_amount is not None:
         unit_amount = _required_integer(
@@ -705,9 +724,7 @@ def _invoice_line_from_stripe(raw: object, *, variant: str) -> InvoiceLine:
                 raw.get("quantity"), variant, "invoice.line.quantity"
             ),
             unit_amount=unit_amount,
-            amount=_required_integer(
-                raw.get("amount"), variant, "invoice.line.amount"
-            ),
+            amount=_required_integer(raw.get("amount"), variant, "invoice.line.amount"),
             currency=_required_string(
                 raw.get("currency"), variant, "invoice.line.currency"
             ),
@@ -728,9 +745,7 @@ def _invoice_line_from_stripe(raw: object, *, variant: str) -> InvoiceLine:
         ) from error
 
 
-def _invoice_subscription_id(
-    raw: Mapping[str, object], *, variant: str
-) -> str | None:
+def _invoice_subscription_id(raw: Mapping[str, object], *, variant: str) -> str | None:
     direct = _resource_id(raw.get("subscription"), variant, "invoice.subscription")
     if direct is not None:
         return direct
@@ -740,9 +755,7 @@ def _invoice_subscription_id(
         variant,
         "invoice.parent.subscription_details",
     )
-    return _resource_id(
-        details.get("subscription"), variant, "invoice.subscription"
-    )
+    return _resource_id(details.get("subscription"), variant, "invoice.subscription")
 
 
 def _invoice_line_subscription_item_id(
@@ -775,15 +788,11 @@ def _phase_for_update(raw: object, *, variant: str) -> dict[str, Any]:
         if value is not None:
             phase[field_name] = value
     items = raw.get("items")
-    if not isinstance(items, Sequence) or isinstance(
-        items, (str, bytes, bytearray)
-    ):
+    if not isinstance(items, Sequence) or isinstance(items, (str, bytes, bytearray)):
         raise _protocol_error(
             variant, "O Stripe devolveu itens inválidos na fase atual."
         )
-    phase["items"] = [
-        _phase_item_for_update(item, variant=variant) for item in items
-    ]
+    phase["items"] = [_phase_item_for_update(item, variant=variant) for item in items]
     return phase
 
 
@@ -839,9 +848,7 @@ def _apply_scheduled_changes(
             items.remove(item)
 
 
-def _list_data(
-    value: object, variant: str, field_name: str
-) -> Sequence[object]:
+def _list_data(value: object, variant: str, field_name: str) -> Sequence[object]:
     mapping = _optional_mapping(value, variant, field_name)
     data = mapping.get("data")
     if not isinstance(data, Sequence) or isinstance(data, (str, bytes, bytearray)):
@@ -853,8 +860,7 @@ def _metadata(value: object, variant: str, field_name: str) -> dict[str, str]:
     if value is None:
         return {}
     if not isinstance(value, Mapping) or not all(
-        isinstance(key, str) and isinstance(item, str)
-        for key, item in value.items()
+        isinstance(key, str) and isinstance(item, str) for key, item in value.items()
     ):
         raise _protocol_error(variant, f"O Stripe informou {field_name} inválido.")
     return dict(value)
@@ -906,9 +912,7 @@ def _plain_response_value(value: object, *, variant: str) -> object:
             for key, item in value.items()
         }
 
-    if isinstance(value, Sequence) and not isinstance(
-        value, (str, bytes, bytearray)
-    ):
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [_plain_response_value(item, variant=variant) for item in value]
 
     to_dict = getattr(value, "to_dict", None)
@@ -1016,9 +1020,7 @@ def _optional_string(value: object, variant: str, field_name: str) -> str | None
     return value
 
 
-def _timestamp(
-    value: object, variant: str, field_name: str
-) -> datetime | None:
+def _timestamp(value: object, variant: str, field_name: str) -> datetime | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):

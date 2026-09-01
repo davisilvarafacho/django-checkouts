@@ -286,17 +286,14 @@ def test_cancel_period_end_and_resume(stripe_client, stripe_mock, load_fixture):
         idempotency_key="sub_1:cancel:v1",
     )
     assert (
-        stripe_mock.Subscription.modify.call_args.kwargs["cancel_at_period_end"]
-        is True
+        stripe_mock.Subscription.modify.call_args.kwargs["cancel_at_period_end"] is True
     )
     assert (
         stripe_mock.Subscription.modify.call_args.kwargs["idempotency_key"]
         == "sub_1:cancel:v1"
     )
 
-    stripe_client.subscriptions.resume(
-        "sub_1", idempotency_key="sub_1:resume:v1"
-    )
+    stripe_client.subscriptions.resume("sub_1", idempotency_key="sub_1:resume:v1")
     assert (
         stripe_mock.Subscription.modify.call_args.kwargs["cancel_at_period_end"]
         is False
@@ -341,9 +338,7 @@ def test_resume_rejects_ended_or_canceled_subscription(
     stripe_mock.Subscription.retrieve.return_value = raw
 
     with pytest.raises(ValidationError, match=r"encerrada|cancelada"):
-        stripe_client.subscriptions.resume(
-            "sub_1", idempotency_key="sub_1:resume:v1"
-        )
+        stripe_client.subscriptions.resume("sub_1", idempotency_key="sub_1:resume:v1")
 
     stripe_mock.Subscription.modify.assert_not_called()
 

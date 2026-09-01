@@ -14,6 +14,8 @@ from django_checkouts.types.checkouts import CheckoutCreate
 from django_checkouts.types.events import EventPage
 from django_checkouts.types.events import WebhookEvent
 from django_checkouts.types.invoices import Invoice
+from django_checkouts.types.setups import Setup
+from django_checkouts.types.setups import SetupCreate
 from django_checkouts.types.subscriptions import ChangeSubscription
 from django_checkouts.types.subscriptions import Subscription
 
@@ -29,6 +31,14 @@ class CreateCheckout(GatewayCommand[Checkout]):
     """Cria um checkout hospedado."""
 
     request: CheckoutCreate
+    idempotency_key: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CreateSetup(GatewayCommand[Setup]):
+    """Coleta uma forma de pagamento sem efetuar cobrança."""
+
+    request: SetupCreate
     idempotency_key: str
 
 

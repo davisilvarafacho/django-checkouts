@@ -27,6 +27,7 @@ STRIPE_CAPABILITIES = GatewayCapabilities(
         supports_inline_prices=True,
         supports_expiration=True,
         supports_customer_prefill=True,
+        supports_setup=True,
     ),
     subscriptions=SubscriptionCapabilities(
         retrieve=True,

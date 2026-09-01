@@ -17,6 +17,7 @@ from django_checkouts.gateways.commands import CancelCheckout
 from django_checkouts.gateways.commands import CancelRemoteSubscription
 from django_checkouts.gateways.commands import ChangeRemoteSubscription
 from django_checkouts.gateways.commands import CreateCheckout
+from django_checkouts.gateways.commands import CreateSetup
 from django_checkouts.gateways.commands import ListEvents
 from django_checkouts.gateways.commands import ResumeSubscription
 from django_checkouts.gateways.commands import RetrieveCheckout
@@ -56,6 +57,8 @@ class GatewayContractSuite:
         expected: set[type[Any]] = {VerifyWebhook}
         if capabilities.checkouts.modes:
             expected.update({CreateCheckout, RetrieveCheckout, CancelCheckout})
+        if capabilities.checkouts.supports_setup:
+            expected.add(CreateSetup)
         subscriptions = capabilities.subscriptions
         if subscriptions.retrieve:
             expected.add(RetrieveSubscription)

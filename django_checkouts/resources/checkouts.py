@@ -21,9 +21,7 @@ class CheckoutResource:
     def __init__(self, gateway: BaseCheckoutGateway) -> None:
         self.gateway = gateway
 
-    def create(
-        self, request: CheckoutCreate, *, idempotency_key: str
-    ) -> Checkout:
+    def create(self, request: CheckoutCreate, *, idempotency_key: str) -> Checkout:
         require_idempotency_key(idempotency_key)
         return self.gateway.execute(
             CreateCheckout(request=request, idempotency_key=idempotency_key)

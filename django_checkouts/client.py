@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from django_checkouts.resources import CheckoutResource
 from django_checkouts.resources import EventResource
 from django_checkouts.resources import InvoiceResource
+from django_checkouts.resources import SetupResource
 from django_checkouts.resources import SubscriptionResource
 from django_checkouts.resources import WebhookResource
 
@@ -24,5 +25,6 @@ class CheckoutClient:
         self.checkouts = CheckoutResource(gateway)
         self.subscriptions = SubscriptionResource(gateway)
         self.invoices = InvoiceResource(gateway)
+        self.setups = SetupResource(gateway)
         self.webhooks = WebhookResource(gateway)
         self.events = EventResource(gateway)
