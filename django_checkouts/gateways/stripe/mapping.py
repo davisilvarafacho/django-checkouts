@@ -458,6 +458,18 @@ def invoice_from_stripe(raw: object, *, variant: str) -> Invoice:
                 variant,
                 "invoice.amount_remaining",
             ),
+            subtotal=_optional_integer(
+                response.get("subtotal"), variant, "invoice.subtotal"
+            ),
+            discount_total=_sum_invoice_amounts(
+                response.get("total_discount_amounts"),
+                variant,
+                "invoice.total_discount_amounts",
+            ),
+            tax_total=_sum_invoice_amounts(
+                response.get("total_taxes"), variant, "invoice.total_taxes"
+            ),
+            total=_optional_integer(response.get("total"), variant, "invoice.total"),
             currency=_required_string(
                 response.get("currency"), variant, "invoice.currency"
             ),
@@ -898,6 +910,31 @@ def _required_string(value: object, variant: str, field_name: str) -> str:
     if not result:
         raise _protocol_error(variant, f"O Stripe não informou {field_name}.")
     return result
+
+
+def _sum_invoice_amounts(
+    value: object, variant: str, field_name: str
+) -> int | None:
+    if value is None:
+        return None
+    if not isinstance(value, (list, tuple)):
+        raise _protocol_error(variant, f"O Stripe informou {field_name} inválido.")
+    total = 0
+    for index, entry in enumerate(value):
+        if not isinstance(entry, Mapping):
+            raise _protocol_error(
+                variant, f"O Stripe informou {field_name}[{index}] inválido."
+            )
+        total += _required_integer(
+            entry.get("amount"), variant, f"{field_name}[{index}].amount"
+        )
+    return total
+
+
+def _optional_integer(value: object, variant: str, field_name: str) -> int | None:
+    if value is None:
+        return None
+    return _required_integer(value, variant, field_name)
 
 
 def _required_integer(value: object, variant: str, field_name: str) -> int:

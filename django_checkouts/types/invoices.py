@@ -71,10 +71,18 @@ class Invoice:
     hosted_url: str | None
     reference_id: str | None
     raw: Mapping[str, object] = field(repr=False, compare=False)
+    subtotal: int | None = None
+    discount_total: int | None = None
+    tax_total: int | None = None
+    total: int | None = None
 
     def __post_init__(self) -> None:
         for field_name in ("amount_due", "amount_paid", "amount_remaining"):
             validate_integer(getattr(self, field_name), field_name)
+        for field_name in ("subtotal", "discount_total", "tax_total", "total"):
+            value = getattr(self, field_name)
+            if value is not None:
+                validate_integer(value, field_name)
         object.__setattr__(self, "currency", normalize_currency(self.currency))
         for field_name in ("due_at", "paid_at", "next_payment_attempt_at"):
             object.__setattr__(

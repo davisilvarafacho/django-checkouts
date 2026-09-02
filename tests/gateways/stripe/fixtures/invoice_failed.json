@@ -8,6 +8,10 @@
   "amount_due": 4900,
   "amount_paid": 0,
   "amount_remaining": 4900,
+  "subtotal": 4900,
+  "total_discount_amounts": [],
+  "total_taxes": [],
+  "total": 4900,
   "currency": "brl",
   "lines": {
     "object": "list",

@@ -60,6 +60,10 @@ def test_retrieve_normalizes_real_sdk_invoice(
     assert invoice.amount_due == 7300
     assert invoice.amount_paid == 7300
     assert invoice.amount_remaining == 0
+    assert invoice.subtotal == 7000
+    assert invoice.discount_total == 500
+    assert invoice.tax_total == 800
+    assert invoice.total == 7300
     assert invoice.currency == "BRL"
     assert invoice.paid_at == datetime.fromtimestamp(1785542500, tz=UTC)
     assert invoice.reference_id == "renewal-42"
