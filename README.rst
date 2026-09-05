@@ -1,6 +1,6 @@
-===============
+================
 django-checkouts
-===============
+================
 
 Checkout hospedado e cobrança recorrente para Django por uma interface única,
 tipada e orientada a recursos. O gateway Stripe está completo; integrações com
