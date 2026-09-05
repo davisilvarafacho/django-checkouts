@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes deste projeto são registradas aqui.
 
+## [1.0.1](https://github.com/davisilvarafacho/django-checkouts/compare/v1.0.0...v1.0.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* alinhar sublinhado do titulo no README.rst ([e885ac9](https://github.com/davisilvarafacho/django-checkouts/commit/e885ac970f754b1b1d808b5ac6445b7306a4cce6))
+* alinhar sublinhado do título no README.rst ([542511e](https://github.com/davisilvarafacho/django-checkouts/commit/542511e1c1eab4153dac23ee60565919b3465b73))
+
 ## 1.0.0 (2026-09-05)
 
 
