@@ -81,7 +81,10 @@ def stripe_client() -> CheckoutClient:
 
 
 def subscription_checkout(
-    *, quantity: int = 1, method: PaymentMethod = PaymentMethod.CARD
+    *,
+    quantity: int = 1,
+    method: PaymentMethod = PaymentMethod.CARD,
+    reference_id: str | None = None,
 ) -> CheckoutCreate:
     return CheckoutCreate(
         mode=CheckoutMode.SUBSCRIPTION,
@@ -93,6 +96,7 @@ def subscription_checkout(
         ),
         payment_methods=(method,),
         success_url=SUCCESS_URL,
+        reference_id=reference_id,
     )
 
 
@@ -158,6 +162,46 @@ def test_subscription_checkout_sends_quantity_and_key(
     assert kwargs["idempotency_key"] == "org-42:v1"
     assert kwargs["api_key"] == "sk_test_per_account"
     assert stripe_mock.api_key == "global-key-must-not-change"
+
+
+def test_subscription_com_reference_id_grava_metadata_na_assinatura(
+    stripe_client, stripe_mock, load_fixture
+):
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
+
+    stripe_client.checkouts.create(
+        subscription_checkout(reference_id="org-42"), idempotency_key="org-42:v1"
+    )
+
+    kwargs = stripe_mock.checkout.Session.create.call_args.kwargs
+    assert kwargs["client_reference_id"] == "org-42"
+    assert kwargs["subscription_data"] == {"metadata": {"reference_id": "org-42"}}
+
+
+def test_subscription_sem_reference_id_nao_envia_subscription_data(
+    stripe_client, stripe_mock, load_fixture
+):
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
+
+    stripe_client.checkouts.create(subscription_checkout(), idempotency_key="org-42:v1")
+
+    kwargs = stripe_mock.checkout.Session.create.call_args.kwargs
+    assert "subscription_data" not in kwargs
+    assert "client_reference_id" not in kwargs
+
+
+def test_pagamento_com_reference_id_nao_envia_subscription_data(
+    stripe_client, stripe_mock, load_fixture
+):
+    stripe_mock.checkout.Session.create.return_value = load_fixture("session_open.json")
+
+    stripe_client.checkouts.create(
+        payment_checkout(reference_id="order-42"), idempotency_key="order-42:v1"
+    )
+
+    kwargs = stripe_mock.checkout.Session.create.call_args.kwargs
+    assert kwargs["client_reference_id"] == "order-42"
+    assert "subscription_data" not in kwargs
 
 
 def test_setup_checkout_cria_session_sem_itens_ou_cobranca(stripe_client, stripe_mock):

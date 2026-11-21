@@ -8,7 +8,8 @@ Assinaturas
 
 Crie o checkout recorrente com ``CheckoutMode.SUBSCRIPTION``. Preços inline
 exigem ``Recurrence``; alterações de assinatura Stripe aceitam preços de
-catálogo.
+catálogo. No Stripe, um ``reference_id`` informado no checkout também é gravado
+na assinatura e volta em ``Subscription.reference_id`` nos eventos e consultas.
 
 Quantidade é absoluta
 ----------------------
