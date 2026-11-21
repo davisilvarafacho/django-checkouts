@@ -185,6 +185,12 @@ def build_checkout_params(request: CheckoutCreate) -> dict[str, Any]:
         params["cancel_url"] = request.cancel_url
     if request.reference_id is not None:
         params["client_reference_id"] = request.reference_id
+        if request.mode == CheckoutMode.SUBSCRIPTION:
+            # A Session não grava client_reference_id na assinatura; sem isso
+            # Subscription.reference_id voltaria None nos eventos e consultas.
+            params["subscription_data"] = {
+                "metadata": {"reference_id": request.reference_id}
+            }
     if request.expires_at is not None:
         params["expires_at"] = int(request.expires_at.timestamp())
     if request.metadata:
