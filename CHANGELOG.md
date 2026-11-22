@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes deste projeto são registradas aqui.
 
+## [1.1.0](https://github.com/davisilvarafacho/django-checkouts/compare/v1.0.1...v1.1.0) (2026-11-21)
+
+
+### Features
+
+* **stripe:** gravar reference_id na assinatura do checkout ([f73e9da](https://github.com/davisilvarafacho/django-checkouts/commit/f73e9da3afc5fc850d96cbbc1eea48b7071c5333))
+* **stripe:** gravar reference_id na assinatura do checkout ([519ce8a](https://github.com/davisilvarafacho/django-checkouts/commit/519ce8ad52519e9eba70ec7e4d2c9a031cf48cce))
+
 ## [1.0.1](https://github.com/davisilvarafacho/django-checkouts/compare/v1.0.0...v1.0.1) (2026-09-05)
 
 
